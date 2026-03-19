@@ -1,0 +1,37 @@
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Pacific/Auckland
+
+# 1. 只保留最基础的系统工具
+# 移除了 wget, software-properties-common, gnupg 等，因为不安装 MongoDB 了
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    vim \
+    sudo \
+    ca-certificates \
+    build-essential \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. 安装 Node.js (20.x LTS) - 前端的核心
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g npm@latest
+
+# 3. 只保留前端必要的全局工具
+# 移除了 pm2, nodemon, express-generator (这些是后端用的)
+RUN npm install -g typescript
+
+# 4. 设置环境变量与工作区
+ENV NODE_ENV=development
+WORKDIR /app/client
+
+# 5. 只暴露前端端口
+# 5173: Vite 默认端口
+EXPOSE 5173
+
+# 6. 启动命令：直接挂起
+# 移除了 mongod 启动命令，因为前端容器不需要数据库
+CMD ["tail -f /dev/null"]
