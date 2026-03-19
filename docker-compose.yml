@@ -1,0 +1,12 @@
+services:
+  uoa-environment:
+    build: .
+    container_name: ubuntu-uoa
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    environment:
+      - TZ=Pacific/Auckland
+    volumes:
+      - ./app:/app
+      - ~/.ssh:/root/.ssh:ro
