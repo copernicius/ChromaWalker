@@ -1,4 +1,5 @@
-./claude
+.claude
+data
 # Logs
 logs
 *.log

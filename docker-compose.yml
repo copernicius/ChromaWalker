@@ -1,12 +1,36 @@
 services:
-  uoa-environment:
-    build: .
-    container_name: ubuntu-uoa
-    restart: unless-stopped
+  mongodb:
+    image: mongo:7.0
+    container_name: mern-mongodb
     ports:
-      - "8888:8888"
-    environment:
-      - TZ=Pacific/Auckland
+      - "27017:27017"
     volumes:
-      - ./app:/app
-      - ~/.ssh:/root/.ssh:ro
+      - ./data/db:/data/db
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: mern-server
+    volumes:
+      - ./server:/app/server
+      - /app/server/node_modules # 避免 node_modules 被宿主机覆盖
+    working_dir: /app/server
+    # 容器启动后自动安装依赖并用 nodemon 启动 index.js
+    command: sh -c "npm install && nodemon index.js"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongodb  # Make sure the server starts after MongoDB is ready
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: mern-client
+    volumes:
+      - ./client:/app/client
+    working_dir: /app/client
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "5173:5173"

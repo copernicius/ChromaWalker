@@ -1,0 +1,36 @@
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Pacific/Auckland
+
+# 1. 安装基础工具及 Node 编译依赖
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    vim \
+    sudo \
+    ca-certificates \
+    build-essential \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. 安装 Node.js (20.x LTS)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g npm@latest
+
+# 3. 安装后端专用全局工具
+# nodemon: 修改代码后自动重启服务 (开发必备)
+# typescript/ts-node: 如果你打算用 TS 写后端
+RUN npm install -g nodemon typescript ts-node
+
+# 4. 设置环境变量与工作区
+ENV NODE_ENV=development
+WORKDIR /app/server
+
+# 5. 暴露后端端口 (通常 Express 默认为 3000 或 8080)
+EXPOSE 3000
+
+# 6. 启动命令
+# 保持容器运行，具体的启动逻辑交给 docker-compose 的 command
+CMD ["tail -f /dev/null"]
