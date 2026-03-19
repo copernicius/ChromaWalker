@@ -13,7 +13,7 @@ services:
       dockerfile: Dockerfile.server
     container_name: mern-server
     volumes:
-      - ./server:/app/server
+      - ../server:/app/server
       - /app/server/node_modules # 避免 node_modules 被宿主机覆盖
     working_dir: /app/server
     # 容器启动后自动安装依赖并用 nodemon 启动 index.js
@@ -29,7 +29,7 @@ services:
       dockerfile: Dockerfile.client
     container_name: mern-client
     volumes:
-      - ./client:/app/client
+      - ../client:/app/client
     working_dir: /app/client
     command: sh -c "npm install && npm run dev"
     ports:

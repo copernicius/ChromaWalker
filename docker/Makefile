@@ -45,6 +45,6 @@ clean:
 
 # 9. 初始化项目 (第一次运行建议执行这个)
 init:
-	mkdir -p data/db
+	mkdir -p ../data/db
 	$(COMPOSE) up -d --build
 	@echo "项目已初始化并启动。前端：http://localhost:5173，后端：http://localhost:3000"

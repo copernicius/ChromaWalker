@@ -5,11 +5,9 @@ A full-stack application built with MongoDB, Express, React, and Node.js, contai
 ## Project Structure
 
 ```
-fe/
 ├── client/          # React frontend (Vite)
-├── server/           # Express/Node.js backend
-├── docker-compose.yml
-└── Makefile
+├── server/          # Express/Node.js backend
+├── docker/          # Build docker development env
 ```
 
 ## Prerequisites
@@ -24,6 +22,7 @@ fe/
 Initialize the project and start all services:
 
 ```bash
+cd docker
 make init
 ```
 
