@@ -1,20 +1,20 @@
+import { Target, Users } from 'lucide-react';
 import { useState } from 'react';
 import { Header } from '../components/Header';
 import { MissionCard } from '../components/MissionCard';
-import { MOCK_MISSIONS } from '../data/mockData';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Target, Users } from 'lucide-react';
+import { MOCK_MISSIONS } from '../data/mockData';
 
 export function Missions() {
-  const [selectedMission, setSelectedMission] = useState<string | null>(null);
-  
-  const soloMissions = MOCK_MISSIONS.filter(m => !m.teamMission);
-  const teamMissions = MOCK_MISSIONS.filter(m => m.teamMission);
+  const [, setSelectedMission] = useState<string | null>(null);
+
+  const soloMissions = MOCK_MISSIONS.filter((m) => !m.teamMission);
+  const teamMissions = MOCK_MISSIONS.filter((m) => m.teamMission);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       <Header title="Missions" />
-      
+
       <div className="max-w-screen-xl mx-auto px-4 pt-20">
         {/* Stats Banner */}
         <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-6 mb-6 text-white">
@@ -64,7 +64,7 @@ export function Missions() {
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-4">
               {teamMissions.map((mission) => (
                 <MissionCard

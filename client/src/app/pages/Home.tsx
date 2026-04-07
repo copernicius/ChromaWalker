@@ -1,13 +1,14 @@
+import { Camera, Sparkles, TrendingUp, Trophy, Zap } from 'lucide-react';
+import { useMemo } from 'react';
 import { Link } from 'react-router';
-import { Camera, Trophy, Zap, TrendingUp, Sparkles } from 'lucide-react';
-import { MOCK_USER, RAINBOW_COLORS, MOCK_PHOTOS } from '../data/mockData';
 import { PhotoCard } from '../components/PhotoCard';
 import { Progress } from '../components/ui/progress';
+import { MOCK_PHOTOS, MOCK_USER, RAINBOW_COLORS } from '../data/mockData';
 
-export function Home() {
-  const levelProgress = (MOCK_USER.points / MOCK_USER.nextLevelPoints) * 100;
-  const recentPhotos = MOCK_PHOTOS.slice(0, 4);
-  const dailyColor = RAINBOW_COLORS[new Date().getDay() % RAINBOW_COLORS.length];
+export const Home = () => {
+  const levelProgress = useMemo(() => (MOCK_USER.points / MOCK_USER.nextLevelPoints) * 100, []);
+  const recentPhotos = useMemo(() => MOCK_PHOTOS.slice(0, 4), []);
+  const dailyColor = useMemo(() => RAINBOW_COLORS[new Date().getDay() % RAINBOW_COLORS.length], []);
 
   return (
     <div className="min-h-screen bg-[#F5F1ED] pb-24 pt-6">
@@ -18,10 +19,15 @@ export function Home() {
             <div>
               <h1 className="text-3xl">
                 <span className="font-semibold">Chroma</span>
-                <span className="italic" style={{ fontFamily: 'var(--font-brand-serif)' }}>Walk</span>
+                <span className="italic" style={{ fontFamily: 'var(--font-brand-serif)' }}>
+                  Walk
+                </span>
               </h1>
             </div>
-            <Link to="/profile" className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FF8A65] to-[#9575CD] flex items-center justify-center text-white font-semibold shadow-md hover:scale-110 transition-transform active:scale-95">
+            <Link
+              to="/profile"
+              className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FF8A65] to-[#9575CD] flex items-center justify-center text-white font-semibold shadow-md hover:scale-110 transition-transform active:scale-95"
+            >
               {MOCK_USER.username[0].toUpperCase()}
             </Link>
           </div>
@@ -41,14 +47,16 @@ export function Home() {
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#FFD54F] animate-pulse" />
                 Progress to Level {MOCK_USER.level + 1}
               </span>
-              <span className="font-semibold text-[#2D2520]">{MOCK_USER.points}/{MOCK_USER.nextLevelPoints}</span>
+              <span className="font-semibold text-[#2D2520]">
+                {MOCK_USER.points}/{MOCK_USER.nextLevelPoints}
+              </span>
             </div>
             <Progress value={levelProgress} className="h-2.5 bg-[#E8DFD8]" />
           </div>
@@ -56,21 +64,30 @@ export function Home() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-white rounded-2xl p-5 shadow-sm text-center animate-slide-up hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer" style={{ animationDelay: '0.1s' }}>
+          <div
+            className="bg-white rounded-2xl p-5 shadow-sm text-center animate-slide-up hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer"
+            style={{ animationDelay: '0.1s' }}
+          >
             <div className="w-10 h-10 bg-[#FF8A65]/10 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transition-transform">
               <Camera className="w-5 h-5 text-[#FF8A65]" />
             </div>
             <p className="text-2xl font-bold text-[#2D2520]">{MOCK_USER.photosUploaded}</p>
             <p className="text-xs text-gray-600 mt-1">Photos</p>
           </div>
-          <div className="bg-white rounded-2xl p-5 shadow-sm text-center animate-slide-up hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer" style={{ animationDelay: '0.15s' }}>
+          <div
+            className="bg-white rounded-2xl p-5 shadow-sm text-center animate-slide-up hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer"
+            style={{ animationDelay: '0.15s' }}
+          >
             <div className="w-10 h-10 bg-[#FFD54F]/20 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transition-transform">
               <Trophy className="w-5 h-5 text-[#F4C430]" />
             </div>
             <p className="text-2xl font-bold text-[#2D2520]">{MOCK_USER.missionsCompleted}</p>
             <p className="text-xs text-gray-600 mt-1">Missions</p>
           </div>
-          <div className="bg-white rounded-2xl p-5 shadow-sm text-center animate-slide-up hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer" style={{ animationDelay: '0.2s' }}>
+          <div
+            className="bg-white rounded-2xl p-5 shadow-sm text-center animate-slide-up hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer"
+            style={{ animationDelay: '0.2s' }}
+          >
             <div className="w-10 h-10 bg-[#8BA888]/10 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transition-transform">
               <TrendingUp className="w-5 h-5 text-[#8BA888]" />
             </div>
@@ -82,7 +99,9 @@ export function Home() {
         {/* Daily Color Challenge */}
         <div
           className="rounded-3xl p-6 shadow-sm mb-6 text-white relative overflow-hidden animate-scale-in hover:shadow-lg hover:scale-102 transition-all cursor-pointer"
-          style={{ background: `linear-gradient(135deg, ${dailyColor.hex} 0%, ${dailyColor.hex}dd 100%)` }}
+          style={{
+            background: `linear-gradient(135deg, ${dailyColor.hex} 0%, ${dailyColor.hex}dd 100%)`,
+          }}
         >
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-3">
@@ -102,21 +121,34 @@ export function Home() {
               Start Challenge
             </Link>
           </div>
-          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-20 animate-pulse" style={{ background: dailyColor.hex }} />
-          <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full opacity-20 animate-pulse delay-75" style={{ background: dailyColor.hex }} />
+          <div
+            className="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-20 animate-pulse"
+            style={{ background: dailyColor.hex }}
+          />
+          <div
+            className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full opacity-20 animate-pulse delay-75"
+            style={{ background: dailyColor.hex }}
+          />
         </div>
 
         {/* Recent Discoveries */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Recent Discoveries</h2>
-            <Link to="/galleries" className="text-sm text-[#C89F7B] font-medium hover:text-[#B08968] transition-colors">
+            <Link
+              to="/galleries"
+              className="text-sm text-[#C89F7B] font-medium hover:text-[#B08968] transition-colors"
+            >
               View All →
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {recentPhotos.map((photo, index) => (
-              <div key={photo.id} className="animate-scale-in" style={{ animationDelay: `${index * 0.1}s` }}>
+              <div
+                key={photo.id}
+                className="animate-scale-in"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
                 <PhotoCard photo={photo} />
               </div>
             ))}
@@ -133,9 +165,9 @@ export function Home() {
                   key={color.id}
                   to={`/gallery/${color.id}`}
                   className="aspect-square rounded-xl shadow-sm hover:shadow-md transition-all hover:scale-110 active:scale-95 animate-scale-in"
-                  style={{ 
+                  style={{
                     backgroundColor: color.hex,
-                    animationDelay: `${index * 0.05}s`
+                    animationDelay: `${index * 0.05}s`,
                   }}
                   title={color.name}
                 />
@@ -146,4 +178,4 @@ export function Home() {
       </div>
     </div>
   );
-}
+};

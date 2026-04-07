@@ -1,7 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
-interface HeaderProps {
+export interface HeaderProps {
   title: string;
   showBack?: boolean;
 }
@@ -14,6 +14,7 @@ export function Header({ title, showBack = false }: HeaderProps) {
       <div className="max-w-screen-xl mx-auto px-4 h-14 flex items-center">
         {showBack && (
           <button
+            type="button"
             onClick={() => navigate(-1)}
             className="mr-3 p-2 hover:bg-gray-100 rounded-full transition-colors"
           >

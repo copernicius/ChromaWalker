@@ -1,63 +1,62 @@
 import { Heart, MessageCircle, Star } from 'lucide-react';
-import { Photo } from '../data/mockData';
-import { useState } from 'react';
+import { memo, useCallback, useState } from 'react';
+import type { Photo } from '../data/mockData';
+import { LazyImage } from './LazyImage';
 
-interface PhotoCardProps {
+export interface PhotoCardProps {
   photo: Photo;
   onClick?: () => void;
 }
 
-export function PhotoCard({ photo, onClick }: PhotoCardProps) {
+export const PhotoCard = memo(({ photo, onClick }: PhotoCardProps) => {
   const [liked, setLiked] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [localLikes, setLocalLikes] = useState(photo.likes);
   const [localFavorites, setLocalFavorites] = useState(photo.favorites);
 
-  const handleLike = (e: React.MouseEvent) => {
+  const handleLike = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    if (liked) {
-      setLocalLikes(localLikes - 1);
-    } else {
-      setLocalLikes(localLikes + 1);
-    }
-    setLiked(!liked);
-  };
+    setLiked((prev) => {
+      setLocalLikes((l) => (prev ? l - 1 : l + 1));
+      return !prev;
+    });
+  }, []);
 
-  const handleFavorite = (e: React.MouseEvent) => {
+  const handleFavorite = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    if (favorited) {
-      setLocalFavorites(localFavorites - 1);
-    } else {
-      setLocalFavorites(localFavorites + 1);
-    }
-    setFavorited(!favorited);
-  };
+    setFavorited((prev) => {
+      setLocalFavorites((f) => (prev ? f - 1 : f + 1));
+      return !prev;
+    });
+  }, []);
 
   return (
-    <div
-      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+    <button
+      type="button"
+      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer border-none p-0 text-left w-full"
       onClick={onClick}
     >
       <div className="aspect-square relative">
-        <img
+        <LazyImage
           src={photo.imageUrl}
           alt={`${photo.color} photo at ${photo.location}`}
-          className="w-full h-full object-cover"
+          className="w-full h-full"
         />
       </div>
-      
+
       <div className="p-3">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#FF8A65] to-[#9575CD]" />
-            <span className="text-sm font-medium text-[#2D2520]">{photo.username}</span>
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#FF8A65] to-[#9575CD] shrink-0" />
+          <div className="min-w-0">
+            <span className="text-sm font-medium text-[#2D2520] block">{photo.username}</span>
+            <span className="text-xs text-gray-500 block truncate">{photo.location}</span>
           </div>
-          <span className="text-xs text-gray-500">{photo.location}</span>
         </div>
-        
+
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
+              type="button"
               onClick={handleLike}
               className="flex items-center gap-1 text-sm hover:text-[#FF8A65] transition-colors"
             >
@@ -66,13 +65,17 @@ export function PhotoCard({ photo, onClick }: PhotoCardProps) {
               />
               <span className="text-gray-600">{localLikes}</span>
             </button>
-            
-            <button className="flex items-center gap-1 text-sm hover:text-[#4DB6AC] transition-colors">
+
+            <button
+              type="button"
+              className="flex items-center gap-1 text-sm hover:text-[#4DB6AC] transition-colors"
+            >
               <MessageCircle className="w-4 h-4 text-gray-600" />
               <span className="text-gray-600">{photo.comments}</span>
             </button>
-            
+
             <button
+              type="button"
               onClick={handleFavorite}
               className="flex items-center gap-1 text-sm hover:text-[#FFD54F] transition-colors"
             >
@@ -84,6 +87,8 @@ export function PhotoCard({ photo, onClick }: PhotoCardProps) {
           </div>
         </div>
       </div>
-    </div>
+    </button>
   );
-}
+});
+
+PhotoCard.displayName = 'PhotoCard';

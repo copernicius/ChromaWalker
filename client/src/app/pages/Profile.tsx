@@ -1,26 +1,28 @@
+import { Award, Camera, MapPin, Settings, Trophy } from 'lucide-react';
+import { useMemo } from 'react';
 import { Header } from '../components/Header';
-import { MOCK_USER, RAINBOW_COLORS, MOCK_ACHIEVEMENTS, MOCK_PHOTOS } from '../data/mockData';
-import { Progress } from '../components/ui/progress';
-import { Camera, Trophy, MapPin, Award, Settings } from 'lucide-react';
 import { PhotoCard } from '../components/PhotoCard';
+import { Progress } from '../components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { MOCK_ACHIEVEMENTS, MOCK_PHOTOS, MOCK_USER, RAINBOW_COLORS } from '../data/mockData';
 
-export function Profile() {
-  const levelProgress = (MOCK_USER.points / MOCK_USER.nextLevelPoints) * 100;
-  const userPhotos = MOCK_PHOTOS.filter(p => p.username === MOCK_USER.username);
+export const Profile = () => {
+  const levelProgress = useMemo(() => (MOCK_USER.points / MOCK_USER.nextLevelPoints) * 100, []);
+  const userPhotos = useMemo(
+    () => MOCK_PHOTOS.filter((p) => p.username === MOCK_USER.username),
+    [],
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       <Header title="Profile" />
-      
+
       <div className="max-w-screen-xl mx-auto px-4 pt-20">
         {/* Profile Header */}
         <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <div 
-                className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold"
-              >
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
                 {MOCK_USER.username[0].toUpperCase()}
               </div>
               <div>
@@ -28,7 +30,7 @@ export function Profile() {
                 <p className="text-gray-600">Level {MOCK_USER.level} Explorer</p>
               </div>
             </div>
-            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <button type="button" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
               <Settings className="w-6 h-6 text-gray-600" />
             </button>
           </div>
@@ -37,7 +39,9 @@ export function Profile() {
           <div className="space-y-2 mb-6">
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">Progress to Level {MOCK_USER.level + 1}</span>
-              <span className="font-medium">{MOCK_USER.points}/{MOCK_USER.nextLevelPoints}</span>
+              <span className="font-medium">
+                {MOCK_USER.points}/{MOCK_USER.nextLevelPoints}
+              </span>
             </div>
             <Progress value={levelProgress} className="h-3" />
           </div>
@@ -98,9 +102,13 @@ export function Profile() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      achievement.unlocked ? 'bg-yellow-500 text-white' : 'bg-gray-300 text-gray-600'
-                    }`}>
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        achievement.unlocked
+                          ? 'bg-yellow-500 text-white'
+                          : 'bg-gray-300 text-gray-600'
+                      }`}
+                    >
                       {achievement.unlocked ? '🏆' : '🔒'}
                     </div>
                     <div>
@@ -113,7 +121,9 @@ export function Profile() {
                   <div className="mt-2">
                     <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
                       <span>Progress</span>
-                      <span>{achievement.progress}/{achievement.total}</span>
+                      <span>
+                        {achievement.progress}/{achievement.total}
+                      </span>
                     </div>
                     <Progress
                       value={(achievement.progress / achievement.total) * 100}
@@ -155,10 +165,13 @@ export function Profile() {
           <TabsContent value="locations">
             <div className="bg-white rounded-lg p-5">
               <div className="space-y-3">
-                {Array.from(new Set(userPhotos.map(p => p.location))).map((location) => {
-                  const count = userPhotos.filter(p => p.location === location).length;
+                {Array.from(new Set(userPhotos.map((p) => p.location))).map((location) => {
+                  const count = userPhotos.filter((p) => p.location === location).length;
                   return (
-                    <div key={location} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div
+                      key={location}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    >
                       <div className="flex items-center gap-3">
                         <MapPin className="w-5 h-5 text-blue-500" />
                         <span className="font-medium">{location}</span>
@@ -174,4 +187,4 @@ export function Profile() {
       </div>
     </div>
   );
-}
+};

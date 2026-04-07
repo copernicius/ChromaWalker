@@ -1,9 +1,9 @@
+import { Heart, Info, MessageCircle, Star, X } from 'lucide-react';
+import { AnimatePresence, type PanInfo, motion } from 'motion/react';
 import { useState } from 'react';
-import { Photo, RAINBOW_COLORS } from '../data/mockData';
-import { Heart, MessageCircle, Star, X, Info } from 'lucide-react';
-import { motion, AnimatePresence, PanInfo } from 'motion/react';
+import { type Photo, RAINBOW_COLORS } from '../data/mockData';
 
-interface CardStackProps {
+export interface CardStackProps {
   photos: Photo[];
 }
 
@@ -19,7 +19,7 @@ export function CardStack({ photos }: CardStackProps) {
     }, 300);
   };
 
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const swipeThreshold = 100;
     if (info.offset.x > swipeThreshold) {
       handleSwipe('right');
@@ -47,9 +47,9 @@ export function CardStack({ photos }: CardStackProps) {
       <AnimatePresence>
         {visiblePhotos.map((photo, index) => {
           const actualIndex = (currentIndex + index) % photos.length;
-          const color = RAINBOW_COLORS.find(c => c.id === photo.color);
+          const color = RAINBOW_COLORS.find((c) => c.id === photo.color);
           const isTop = index === 0;
-          
+
           return (
             <motion.div
               key={`${photo.id}-${actualIndex}`}
@@ -79,7 +79,7 @@ export function CardStack({ photos }: CardStackProps) {
                 damping: 30,
               }}
             >
-              <div 
+              <div
                 className={`bg-white rounded-3xl shadow-2xl overflow-hidden ${isTop ? 'cursor-grab active:cursor-grabbing' : ''}`}
               >
                 {/* Photo */}
@@ -89,12 +89,12 @@ export function CardStack({ photos }: CardStackProps) {
                     alt={photo.location}
                     className="w-full h-full object-cover"
                   />
-                  
+
                   {/* Gradient Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/20" />
-                  
+
                   {/* Color Tag */}
-                  <div 
+                  <div
                     className="absolute top-4 right-4 px-4 py-2 rounded-full text-white text-sm font-semibold shadow-lg backdrop-blur-sm"
                     style={{ backgroundColor: `${color?.hex}dd` }}
                   >
@@ -118,22 +118,30 @@ export function CardStack({ photos }: CardStackProps) {
                 {/* Action Bar */}
                 <div className="p-5 bg-white">
                   <div className="flex items-center justify-around">
-                    <button 
+                    <button
+                      type="button"
                       onClick={() => handleSwipe('left')}
                       className="w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
                     >
                       <X className="w-7 h-7 text-gray-600" />
                     </button>
-                    
-                    <button className="w-16 h-16 rounded-full bg-[#FF8A65] hover:bg-[#FF8A65]/90 flex items-center justify-center transition-all hover:scale-110 active:scale-95 shadow-lg">
+
+                    <button
+                      type="button"
+                      className="w-16 h-16 rounded-full bg-[#FF8A65] hover:bg-[#FF8A65]/90 flex items-center justify-center transition-all hover:scale-110 active:scale-95 shadow-lg"
+                    >
                       <Heart className="w-8 h-8 text-white fill-white" />
                     </button>
-                    
-                    <button className="w-14 h-14 rounded-full bg-[#FFD54F] hover:bg-[#FFD54F]/90 flex items-center justify-center transition-all hover:scale-110 active:scale-95 shadow-md">
+
+                    <button
+                      type="button"
+                      className="w-14 h-14 rounded-full bg-[#FFD54F] hover:bg-[#FFD54F]/90 flex items-center justify-center transition-all hover:scale-110 active:scale-95 shadow-md"
+                    >
                       <Star className="w-7 h-7 text-white fill-white" />
                     </button>
-                    
-                    <button 
+
+                    <button
+                      type="button"
                       onClick={() => handleSwipe('right')}
                       className="w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
                     >
@@ -165,13 +173,11 @@ export function CardStack({ photos }: CardStackProps) {
 
       {/* Progress Indicator */}
       <div className="absolute -bottom-8 left-0 right-0 flex justify-center gap-1.5">
-        {photos.slice(0, Math.min(photos.length, 10)).map((_, index) => (
+        {photos.slice(0, Math.min(photos.length, 10)).map((photo, index) => (
           <div
-            key={index}
+            key={photo.id}
             className={`h-1.5 rounded-full transition-all ${
-              index === currentIndex % photos.length
-                ? 'w-8 bg-[#2D2520]'
-                : 'w-1.5 bg-gray-300'
+              index === currentIndex % photos.length ? 'w-8 bg-[#2D2520]' : 'w-1.5 bg-gray-300'
             }`}
           />
         ))}

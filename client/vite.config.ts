@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite'
 import path from 'path'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 import tailwindcss from '@tailwindcss/vite'
-import react from '@vitejs/plugin-react'
+import react from '@vitejs/plugin-react-swc'
 
 export default defineConfig({
   plugins: [
@@ -9,6 +10,7 @@ export default defineConfig({
     // Tailwind is not being actively used – do not remove them
     react(),
     tailwindcss(),
+    basicSsl(),
   ],
   resolve: {
     alias: {
@@ -23,5 +25,11 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
   },
 })

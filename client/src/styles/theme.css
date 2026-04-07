@@ -2,29 +2,29 @@
 
 :root {
   --font-size: 16px;
-  --background: #F5F1ED;
-  --foreground: #2D2520;
-  --card: #FFFFFF;
-  --card-foreground: #2D2520;
+  --background: #f5f1ed;
+  --foreground: #2d2520;
+  --card: #ffffff;
+  --card-foreground: #2d2520;
   --popover: oklch(1 0 0);
-  --popover-foreground: #2D2520;
-  --primary: #2D2520;
-  --primary-foreground: #F5F1ED;
-  --secondary: #E8DFD8;
-  --secondary-foreground: #2D2520;
-  --muted: #E8DFD8;
-  --muted-foreground: #6B5D54;
-  --accent: #E8DFD8;
-  --accent-foreground: #2D2520;
+  --popover-foreground: #2d2520;
+  --primary: #2d2520;
+  --primary-foreground: #f5f1ed;
+  --secondary: #e8dfd8;
+  --secondary-foreground: #2d2520;
+  --muted: #e8dfd8;
+  --muted-foreground: #6b5d54;
+  --accent: #e8dfd8;
+  --accent-foreground: #2d2520;
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
   --border: rgba(45, 37, 32, 0.1);
   --input: transparent;
-  --input-background: #FFFFFF;
+  --input-background: #ffffff;
   --switch-background: #cbced4;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #2D2520;
+  --ring: #2d2520;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -129,9 +129,9 @@
   }
 
   /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
+   * Default typography styles for HTML elements (h1-h4, p, label, button, input).
+   * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
+   */
 
   html {
     font-size: var(--font-size);
@@ -181,7 +181,8 @@
 
   /* Custom Animations */
   @keyframes bounce-slow {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0);
     }
     50% {

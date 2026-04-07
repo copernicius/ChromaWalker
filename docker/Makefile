@@ -1,26 +1,25 @@
-# 变量定义，方便后续修改
 COMPOSE = docker-compose
 PROJECT_NAME = my-mern-project
 
 .PHONY: build up down restart shell-server shell-client shell-db logs clean ps
 
-# 1. 构建镜像 (会根据 docker-compose.yml 里的 build 字段执行)
+# 1. Build all services without using cache (useful for development to ensure latest changes are included)
 build:
 	$(COMPOSE) build --no-cache
 
-# 2. 一键启动所有服务 (后台运行)
+# 2. Start all services (run in detached mode)
 up:
 	$(COMPOSE) up -d --build
 
-# 3. 停止并移除容器
+# 3. Stop and remove containers
 down:
 	$(COMPOSE) down
 
-# 4. 重启所有服务
+# 4. Restart all services (stop and start again)
 restart:
 	$(COMPOSE) down && $(COMPOSE) up -d
 
-# 5. 分别进入不同容器的 Shell (非常实用)
+# 5. Access the shell of each service
 shell-server:
 	$(COMPOSE) exec server bash
 
@@ -30,21 +29,21 @@ shell-client:
 shell-db:
 	$(COMPOSE) exec mongodb mongosh
 
-# 6. 查看实时日志
+# 6. View real-time logs
 logs:
 	$(COMPOSE) logs -f
 
-# 7. 查看容器运行状态
+# 7. View container running status
 ps:
 	$(COMPOSE) ps
 
-# 8. 深度清理：停止容器并删除所有相关镜像、数据卷
+# 8. Clean up all containers, volumes, and local images (use with caution)
 clean:
 	$(COMPOSE) down -v --rmi all
-	@echo "清理完成：容器、数据卷及本地构建的镜像已删除。"
+	@echo "All containers, volumes, and local images have been removed. Use 'make up' to start fresh."
 
-# 9. 初始化项目 (第一次运行建议执行这个)
+# 9. Initialize the project (create necessary directories and start services)
 init:
 	mkdir -p ../data/db
 	$(COMPOSE) up -d --build
-	@echo "项目已初始化并启动。前端：http://localhost:5173，后端：http://localhost:3000"
+	@echo "Project initialized and started. Frontend: http://localhost:5173, Backend: http://localhost:3000"

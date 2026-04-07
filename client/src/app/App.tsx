@@ -1,6 +1,11 @@
-import { RouterProvider } from 'react-router';
-import { router } from './routes';
+import { RouterProvider } from "react-router";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { router } from "./routes";
 
-export default function App() {
-  return <RouterProvider router={router} />;
-}
+export const App = () => {
+  return (
+    <ErrorBoundary>
+      <RouterProvider router={router} />
+    </ErrorBoundary>
+  );
+};

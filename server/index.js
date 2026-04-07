@@ -1,20 +1,40 @@
+require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
+const path = require('path');
 const mongoose = require('mongoose');
 
-const app = express();
-const PORT = 3000;
+const authRoutes = require('./routes/auth');
+const photoRoutes = require('./routes/photos');
 
-// 1. 基础路由：访问 http://localhost:3000/ 就能看到
-app.get('/', (req, res) => {
-  res.send('你好！后端服务器已经成功启动了！');
+const app = express();
+const PORT = process.env.PORT || 3000;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://mongodb:27017/chromawalk';
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Serve uploaded images from the tmp directory
+app.use('/tmp', express.static(path.join(__dirname, 'tmp')));
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/photos', photoRoutes);
+
+app.get('/', (_req, res) => {
+  res.send('ChromaWalk API is running');
 });
 
-// 2. 连接 MongoDB (注意：'mongodb' 是你 docker-compose 里的服务名)
-mongoose.connect('mongodb://mongodb:27017/test_db')
-  .then(() => console.log('✅ 数据库连接成功！'))
-  .catch(err => console.error('❌ 数据库连接失败:', err));
-
-// 3. 开启监听
-app.listen(PORT, () => {
-  console.log(`🚀 服务器跑起来了：http://localhost:${PORT}`);
-})
+// Connect to MongoDB then start listening
+mongoose.connect(MONGO_URI)
+  .then(() => {
+    console.log('MongoDB connected');
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('MongoDB connection failed:', err);
+    process.exit(1);
+  });

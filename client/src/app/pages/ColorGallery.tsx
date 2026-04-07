@@ -1,15 +1,28 @@
+import { Clock, TrendingUp } from 'lucide-react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router';
 import { Header } from '../components/Header';
 import { PhotoCard } from '../components/PhotoCard';
-import { RAINBOW_COLORS, RARE_COLORS, MOCK_PHOTOS } from '../data/mockData';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { TrendingUp, Clock } from 'lucide-react';
+import { MOCK_PHOTOS, RAINBOW_COLORS, RARE_COLORS } from '../data/mockData';
 
-export function ColorGallery() {
+export const ColorGallery = () => {
   const { colorId } = useParams();
-  const color = [...RAINBOW_COLORS, ...RARE_COLORS].find(c => c.id === colorId);
-  const photos = MOCK_PHOTOS.filter(p => p.color === colorId);
-  
+
+  const allColors = useMemo(() => [...RAINBOW_COLORS, ...RARE_COLORS], []);
+  const color = useMemo(() => allColors.find((c) => c.id === colorId), [allColors, colorId]);
+  const photos = useMemo(() => MOCK_PHOTOS.filter((p) => p.color === colorId), [colorId]);
+
+  const sortedByPopular = useMemo(
+    () => [...photos].sort((a, b) => b.likes + b.favorites * 2 - (a.likes + a.favorites * 2)),
+    [photos],
+  );
+
+  const sortedByRecent = useMemo(
+    () => [...photos].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()),
+    [photos],
+  );
+
   if (!color) {
     return (
       <div className="min-h-screen bg-[#F5F1ED] pb-24">
@@ -21,20 +34,10 @@ export function ColorGallery() {
     );
   }
 
-  const sortedByPopular = [...photos].sort((a, b) => {
-    const scoreA = a.likes + (a.favorites * 2);
-    const scoreB = b.likes + (b.favorites * 2);
-    return scoreB - scoreA;
-  });
-
-  const sortedByRecent = [...photos].sort((a, b) => 
-    b.timestamp.getTime() - a.timestamp.getTime()
-  );
-
   return (
     <div className="min-h-screen bg-[#F5F1ED] pb-24">
       <Header title="" showBack />
-      
+
       <div className="max-w-screen-xl mx-auto px-4 pt-16">
         {/* Color Header */}
         <div
@@ -48,17 +51,26 @@ export function ColorGallery() {
             <h1 className="text-4xl font-bold mb-2">{color.name}</h1>
             <p className="text-lg opacity-90">{photos.length} photos captured</p>
           </div>
-          <div className="absolute -bottom-8 -right-8 w-32 h-32 rounded-full opacity-20" style={{ background: color.hex }} />
+          <div
+            className="absolute -bottom-8 -right-8 w-32 h-32 rounded-full opacity-20"
+            style={{ background: color.hex }}
+          />
         </div>
 
         {/* Photo Grid with Tabs */}
         <Tabs defaultValue="popular" className="w-full">
           <TabsList className="w-full mb-6 bg-white rounded-2xl p-1">
-            <TabsTrigger value="popular" className="flex-1 rounded-xl data-[state=active]:bg-[#2D2520] data-[state=active]:text-white">
+            <TabsTrigger
+              value="popular"
+              className="flex-1 rounded-xl data-[state=active]:bg-[#2D2520] data-[state=active]:text-white"
+            >
               <TrendingUp className="w-4 h-4 mr-2" />
               Popular
             </TabsTrigger>
-            <TabsTrigger value="recent" className="flex-1 rounded-xl data-[state=active]:bg-[#2D2520] data-[state=active]:text-white">
+            <TabsTrigger
+              value="recent"
+              className="flex-1 rounded-xl data-[state=active]:bg-[#2D2520] data-[state=active]:text-white"
+            >
               <Clock className="w-4 h-4 mr-2" />
               Recent
             </TabsTrigger>
@@ -73,7 +85,9 @@ export function ColorGallery() {
               </div>
             ) : (
               <div className="text-center py-16 bg-white rounded-2xl">
-                <p className="text-gray-600">No photos yet. Be the first to capture {color.name.toLowerCase()}!</p>
+                <p className="text-gray-600">
+                  No photos yet. Be the first to capture {color.name.toLowerCase()}!
+                </p>
               </div>
             )}
           </TabsContent>
@@ -87,7 +101,9 @@ export function ColorGallery() {
               </div>
             ) : (
               <div className="text-center py-16 bg-white rounded-2xl">
-                <p className="text-gray-600">No photos yet. Be the first to capture {color.name.toLowerCase()}!</p>
+                <p className="text-gray-600">
+                  No photos yet. Be the first to capture {color.name.toLowerCase()}!
+                </p>
               </div>
             )}
           </TabsContent>
@@ -95,4 +111,4 @@ export function ColorGallery() {
       </div>
     </div>
   );
-}
+};
