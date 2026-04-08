@@ -1,27 +1,19 @@
 import { Clock, TrendingUp } from 'lucide-react';
-import { useMemo } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router';
 import { Header } from '../components/Header';
 import { PhotoCard } from '../components/PhotoCard';
+import { PhotoDetail } from '../components/PhotoDetail';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { MOCK_PHOTOS, RAINBOW_COLORS, RARE_COLORS } from '../data/mockData';
 
-export const ColorGallery = () => {
+export function ColorGallery() {
   const { colorId } = useParams();
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const color = [...RAINBOW_COLORS, ...RARE_COLORS].find((c) => c.id === colorId);
+  const photos = MOCK_PHOTOS.filter((p) => p.color === colorId);
 
-  const allColors = useMemo(() => [...RAINBOW_COLORS, ...RARE_COLORS], []);
-  const color = useMemo(() => allColors.find((c) => c.id === colorId), [allColors, colorId]);
-  const photos = useMemo(() => MOCK_PHOTOS.filter((p) => p.color === colorId), [colorId]);
-
-  const sortedByPopular = useMemo(
-    () => [...photos].sort((a, b) => b.likes + b.favorites * 2 - (a.likes + a.favorites * 2)),
-    [photos],
-  );
-
-  const sortedByRecent = useMemo(
-    () => [...photos].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()),
-    [photos],
-  );
+  const selectedPhotoData = selectedPhoto ? MOCK_PHOTOS.find((p) => p.id === selectedPhoto) : null;
 
   if (!color) {
     return (
@@ -33,6 +25,14 @@ export const ColorGallery = () => {
       </div>
     );
   }
+
+  const sortedByPopular = [...photos].sort((a, b) => {
+    const scoreA = a.likes + a.favorites * 2;
+    const scoreB = b.likes + b.favorites * 2;
+    return scoreB - scoreA;
+  });
+
+  const sortedByRecent = [...photos].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
   return (
     <div className="min-h-screen bg-[#F5F1ED] pb-24">
@@ -80,7 +80,9 @@ export const ColorGallery = () => {
             {sortedByPopular.length > 0 ? (
               <div className="grid grid-cols-2 gap-4">
                 {sortedByPopular.map((photo) => (
-                  <PhotoCard key={photo.id} photo={photo} />
+                  <div key={photo.id}>
+                    <PhotoCard photo={photo} onClick={() => setSelectedPhoto(photo.id)} />
+                  </div>
                 ))}
               </div>
             ) : (
@@ -96,7 +98,9 @@ export const ColorGallery = () => {
             {sortedByRecent.length > 0 ? (
               <div className="grid grid-cols-2 gap-4">
                 {sortedByRecent.map((photo) => (
-                  <PhotoCard key={photo.id} photo={photo} />
+                  <div key={photo.id}>
+                    <PhotoCard photo={photo} onClick={() => setSelectedPhoto(photo.id)} />
+                  </div>
                 ))}
               </div>
             ) : (
@@ -109,6 +113,11 @@ export const ColorGallery = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Photo Detail Modal */}
+      {selectedPhotoData && (
+        <PhotoDetail photo={selectedPhotoData} onClose={() => setSelectedPhoto(null)} />
+      )}
     </div>
   );
-};
+}

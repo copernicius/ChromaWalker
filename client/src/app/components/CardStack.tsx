@@ -3,7 +3,7 @@ import { AnimatePresence, type PanInfo, motion } from 'motion/react';
 import { useState } from 'react';
 import { type Photo, RAINBOW_COLORS } from '../data/mockData';
 
-export interface CardStackProps {
+interface CardStackProps {
   photos: Photo[];
 }
 

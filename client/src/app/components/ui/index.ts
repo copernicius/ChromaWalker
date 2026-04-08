@@ -1,6 +1,7 @@
 export { Button, buttonVariants } from './button';
-export { Badge, badgeVariants } from './badge';
+export { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog';
+export { Input } from './input';
+export { Label } from './label';
 export { Progress } from './progress';
-export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
+export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 export { cn } from './utils';
-export { useIsMobile } from './use-mobile';

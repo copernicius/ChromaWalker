@@ -1,56 +1,60 @@
 import { Heart, MessageCircle, Star } from 'lucide-react';
-import { memo, useCallback, useState } from 'react';
+import { useState } from 'react';
 import type { Photo } from '../data/mockData';
-import { LazyImage } from './LazyImage';
 
-export interface PhotoCardProps {
+interface PhotoCardProps {
   photo: Photo;
   onClick?: () => void;
 }
 
-export const PhotoCard = memo(({ photo, onClick }: PhotoCardProps) => {
+export function PhotoCard({ photo, onClick }: PhotoCardProps) {
   const [liked, setLiked] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [localLikes, setLocalLikes] = useState(photo.likes);
   const [localFavorites, setLocalFavorites] = useState(photo.favorites);
 
-  const handleLike = useCallback((e: React.MouseEvent) => {
+  const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setLiked((prev) => {
-      setLocalLikes((l) => (prev ? l - 1 : l + 1));
-      return !prev;
-    });
-  }, []);
+    if (liked) {
+      setLocalLikes(localLikes - 1);
+    } else {
+      setLocalLikes(localLikes + 1);
+    }
+    setLiked(!liked);
+  };
 
-  const handleFavorite = useCallback((e: React.MouseEvent) => {
+  const handleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setFavorited((prev) => {
-      setLocalFavorites((f) => (prev ? f - 1 : f + 1));
-      return !prev;
-    });
-  }, []);
+    if (favorited) {
+      setLocalFavorites(localFavorites - 1);
+    } else {
+      setLocalFavorites(localFavorites + 1);
+    }
+    setFavorited(!favorited);
+  };
 
   return (
     <button
       type="button"
-      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer border-none p-0 text-left w-full"
+      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer w-full text-left"
       onClick={onClick}
     >
       <div className="aspect-square relative">
-        <LazyImage
+        <img
           src={photo.imageUrl}
-          alt={`${photo.color} photo at ${photo.location}`}
-          className="w-full h-full"
+          alt={`${photo.color} capture at ${photo.location}`}
+          className="w-full h-full object-cover"
         />
       </div>
 
       <div className="p-3">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#FF8A65] to-[#9575CD] shrink-0" />
-          <div className="min-w-0">
-            <span className="text-sm font-medium text-[#2D2520] block">{photo.username}</span>
-            <span className="text-xs text-gray-500 block truncate">{photo.location}</span>
+        {/* Username and Location - Stack on mobile */}
+        <div className="mb-2">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#FF8A65] to-[#9575CD]" />
+            <span className="text-sm font-medium text-[#2D2520]">{photo.username}</span>
           </div>
+          <div className="text-xs text-gray-500 text-left">{photo.location}</div>
         </div>
 
         <div className="flex items-center justify-between">
@@ -89,6 +93,4 @@ export const PhotoCard = memo(({ photo, onClick }: PhotoCardProps) => {
       </div>
     </button>
   );
-});
-
-PhotoCard.displayName = 'PhotoCard';
+}

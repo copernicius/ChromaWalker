@@ -1,7 +1,6 @@
 export { Welcome } from './Welcome';
 export { Home } from './Home';
 export { Galleries } from './Galleries';
-export { GalleriesMapView } from './GalleriesMapView';
 export { ColorGallery } from './ColorGallery';
 export { MapExplore } from './MapExplore';
 export { Missions } from './Missions';

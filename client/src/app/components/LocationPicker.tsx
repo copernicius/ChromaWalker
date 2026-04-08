@@ -1,156 +1,286 @@
-import { useEffect, useRef, useState } from 'react';
-import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
-import { X } from 'lucide-react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
+import { MapPin, Navigation } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 
-// Fix Leaflet's default marker icon (broken by bundlers)
-delete (L.Icon.Default.prototype as Record<string, unknown>)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href,
-  iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
-  shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
-});
+const mapContainerStyle = {
+  width: '100%',
+  height: '400px',
+};
 
-const DEFAULT_CENTER: L.LatLngTuple = [-36.853, 174.768]; // Auckland
-const DEFAULT_ZOOM = 15;
+const defaultCenter = {
+  lat: 40.7128,
+  lng: -74.006, // Default to New York City
+};
+
+// Get Google Maps API key from environment variable
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 interface LocationPickerProps {
-  open: boolean;
-  onClose: () => void;
-  onConfirm: (lat: number, lng: number, address: string) => void;
-  initialCoords?: { lat: number; lng: number } | null;
+  location: string;
+  onLocationChange: (location: string, coordinates?: { lat: number; lng: number }) => void;
 }
 
-async function reverseGeocode(lat: number, lng: number): Promise<string> {
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-    );
-    const data = await res.json();
-    const addr = data.address;
-    const name = [addr.road, addr.suburb || addr.city || addr.town].filter(Boolean).join(', ');
-    return name || data.display_name;
-  } catch {
-    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-  }
-}
+export function LocationPicker({ location, onLocationChange }: LocationPickerProps) {
+  const [showMapDialog, setShowMapDialog] = useState(false);
+  const [markerPosition, setMarkerPosition] = useState(defaultCenter);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
-function MapClickHandler({
-  onMove,
-}: {
-  onMove: (lat: number, lng: number) => void;
-}) {
-  useMapEvents({
-    click(e) {
-      onMove(e.latlng.lat, e.latlng.lng);
-    },
+  // Load Google Maps script only if API key exists
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    id: 'google-map-script',
   });
-  return null;
-}
 
-export function LocationPicker({ open, onClose, onConfirm, initialCoords }: LocationPickerProps) {
-  const [pin, setPin] = useState<L.LatLngTuple | null>(null);
-  const [address, setAddress] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [center, setCenter] = useState<L.LatLngTuple>(
-    initialCoords ? [initialCoords.lat, initialCoords.lng] : DEFAULT_CENTER,
-  );
-  const geolocated = useRef(false);
+  // Get current location using browser's geolocation API
+  const handleGetCurrentLocation = useCallback(() => {
+    setIsGettingLocation(true);
 
-  // Try to center map on user's GPS on first open
-  useEffect(() => {
-    if (!open || geolocated.current || initialCoords) return;
-    navigator.geolocation?.getCurrentPosition(
-      (pos) => {
-        const c: L.LatLngTuple = [pos.coords.latitude, pos.coords.longitude];
-        setCenter(c);
-        geolocated.current = true;
-      },
-      () => {
-        // silently fall back to default
-      },
-      { enableHighAccuracy: true, timeout: 5000 },
-    );
-  }, [open, initialCoords]);
-
-  // Reverse geocode whenever pin moves
-  useEffect(() => {
-    if (!pin) return;
-    let cancelled = false;
-    setLoading(true);
-    reverseGeocode(pin[0], pin[1]).then((addr) => {
-      if (!cancelled) {
-        setAddress(addr);
-        setLoading(false);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [pin]);
-
-  // Reset state when opened
-  useEffect(() => {
-    if (open) {
-      setPin(null);
-      setAddress('');
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      setIsGettingLocation(false);
+      return;
     }
-  }, [open]);
 
-  if (!open) return null;
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        const coords = { lat: latitude, lng: longitude };
+
+        // Update marker position for map
+        setMarkerPosition(coords);
+
+        // Reverse geocode to get address
+        if (GOOGLE_MAPS_API_KEY) {
+          try {
+            const response = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`,
+            );
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.results?.[0]) {
+                onLocationChange(data.results[0].formatted_address, coords);
+              } else {
+                // Fallback to coordinates
+                onLocationChange(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`, coords);
+              }
+            } else {
+              // Fallback to coordinates
+              onLocationChange(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`, coords);
+            }
+          } catch (_error) {
+            // Fallback to coordinates if geocoding fails
+            onLocationChange(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`, coords);
+          }
+        } else {
+          // No API key, just use coordinates
+          onLocationChange(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`, coords);
+        }
+
+        // Close dialog if it was open
+        if (showMapDialog) {
+          setShowMapDialog(false);
+        }
+
+        setIsGettingLocation(false);
+      },
+      (error) => {
+        let errorMessage = 'Unable to get your current location. ';
+
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage +=
+              'Location permission was denied. Please allow location access in your browser settings.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage +=
+              'Location information is unavailable. Please try again or enter manually.';
+            break;
+          case error.TIMEOUT:
+            errorMessage += 'Location request timed out. Please try again.';
+            break;
+          default:
+            errorMessage += 'Please enter your location manually.';
+        }
+
+        console.error('Geolocation error:', error.code, error.message);
+        alert(errorMessage);
+        setIsGettingLocation(false);
+      },
+    );
+  }, [onLocationChange, showMapDialog]);
+
+  // Handle map click to select location
+  const handleMapClick = useCallback(
+    async (e: google.maps.MapMouseEvent) => {
+      if (e.latLng) {
+        const lat = e.latLng.lat();
+        const lng = e.latLng.lng();
+        const coords = { lat, lng };
+
+        setMarkerPosition(coords);
+
+        // Reverse geocode to get address
+        if (GOOGLE_MAPS_API_KEY) {
+          try {
+            const response = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_MAPS_API_KEY}`,
+            );
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.results?.[0]) {
+                onLocationChange(data.results[0].formatted_address, coords);
+              } else {
+                onLocationChange(`${lat.toFixed(6)}, ${lng.toFixed(6)}`, coords);
+              }
+            } else {
+              onLocationChange(`${lat.toFixed(6)}, ${lng.toFixed(6)}`, coords);
+            }
+          } catch (_error) {
+            onLocationChange(`${lat.toFixed(6)}, ${lng.toFixed(6)}`, coords);
+          }
+        } else {
+          // No API key, just use coordinates
+          onLocationChange(`${lat.toFixed(6)}, ${lng.toFixed(6)}`, coords);
+        }
+      }
+    },
+    [onLocationChange],
+  );
+
+  const handleConfirmLocation = () => {
+    setShowMapDialog(false);
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#F5F1ED]">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white shadow-sm">
-        <button type="button" onClick={onClose} className="p-2 -ml-2">
-          <X className="w-6 h-6 text-[#2D2520]" />
-        </button>
-        <h2 className="font-semibold text-[#2D2520]">Pick Location</h2>
-        <button
-          type="button"
-          onClick={() => pin && onConfirm(pin[0], pin[1], address)}
-          disabled={!pin || loading}
-          className="text-sm font-semibold text-[#C89F7B] disabled:opacity-40"
-        >
-          Confirm
-        </button>
-      </div>
-
-      {/* Map */}
-      <div className="flex-1 relative">
-        <MapContainer
-          center={center}
-          zoom={DEFAULT_ZOOM}
-          className="h-full w-full"
-          zoomControl={false}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    <div>
+      {/* Location Input */}
+      <div className="mb-6">
+        <label className="block text-sm font-semibold mb-3 text-[#2D2520]" htmlFor="location-input">
+          Location
+        </label>
+        <div className="relative">
+          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            id="location-input"
+            type="text"
+            value={location}
+            onChange={(e) => onLocationChange(e.target.value)}
+            placeholder="Enter location name"
+            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#2D2520]/20 bg-white"
           />
-          <MapClickHandler onMove={(lat, lng) => setPin([lat, lng])} />
-          {pin && <Marker position={pin} />}
-        </MapContainer>
-
-        {/* Hint overlay */}
-        {!pin && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-md text-sm text-[#2D2520] pointer-events-none">
-            Tap on the map to drop a pin
-          </div>
-        )}
+        </div>
+        <div className="flex gap-2 mt-2">
+          <button
+            type="button"
+            onClick={handleGetCurrentLocation}
+            disabled={isGettingLocation}
+            className="text-sm text-[#C89F7B] font-medium hover:text-[#B08968] transition-colors disabled:opacity-50 flex items-center gap-1"
+          >
+            <Navigation className="w-4 h-4" />
+            {isGettingLocation ? 'Getting location...' : 'Use current location'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowMapDialog(true)}
+            className="text-sm text-[#C89F7B] font-medium hover:text-[#B08968] transition-colors flex items-center gap-1"
+          >
+            <MapPin className="w-4 h-4" />
+            Select on map
+          </button>
+        </div>
       </div>
 
-      {/* Address bar */}
-      {pin && (
-        <div className="px-4 py-3 bg-white border-t border-gray-100">
-          <p className="text-sm text-gray-500 mb-0.5">Selected location</p>
-          <p className="font-medium text-[#2D2520] truncate">
-            {loading ? 'Looking up address...' : address}
-          </p>
-        </div>
-      )}
+      {/* Map Dialog */}
+      <Dialog open={showMapDialog} onOpenChange={setShowMapDialog}>
+        <DialogContent className="bg-white border-none sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-xl font-semibold text-[#2D2520] flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-[#C89F7B]" />
+              Select Location
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-600 leading-relaxed">
+              {GOOGLE_MAPS_API_KEY
+                ? 'Click on the map to select a location, or use the button below to get your current location'
+                : 'Use your current location or enter an address manually'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {GOOGLE_MAPS_API_KEY && isLoaded ? (
+              <>
+                <GoogleMap
+                  mapContainerStyle={mapContainerStyle}
+                  center={markerPosition}
+                  zoom={13}
+                  onClick={handleMapClick}
+                >
+                  <Marker position={markerPosition} />
+                </GoogleMap>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleGetCurrentLocation}
+                    disabled={isGettingLocation}
+                    className="flex-1 bg-white border-2 border-[#2D2520] text-[#2D2520] hover:bg-gray-50"
+                  >
+                    <Navigation className="w-4 h-4 mr-2" />
+                    {isGettingLocation ? 'Getting location...' : 'Use Current Location'}
+                  </Button>
+                  <Button
+                    onClick={handleConfirmLocation}
+                    className="flex-1 bg-[#2D2520] hover:bg-[#2D2520]/90 text-white"
+                  >
+                    Confirm Location
+                  </Button>
+                </div>
+              </>
+            ) : loadError ? (
+              <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-6 text-center">
+                <MapPin className="w-10 h-10 text-red-400 mx-auto mb-3" />
+                <p className="text-red-600 mb-1 font-semibold text-sm">Error Loading Maps</p>
+                <p className="text-xs text-red-500 mb-4">
+                  Check your API key and internet connection
+                </p>
+                <Button
+                  onClick={handleGetCurrentLocation}
+                  disabled={isGettingLocation}
+                  className="bg-[#2D2520] hover:bg-[#2D2520]/90 text-white w-full"
+                >
+                  <Navigation className="w-4 h-4 mr-2" />
+                  {isGettingLocation ? 'Getting location...' : 'Use Current Location (Coordinates)'}
+                </Button>
+              </div>
+            ) : !GOOGLE_MAPS_API_KEY ? (
+              <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center">
+                <MapPin className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-600 mb-1 font-semibold text-sm">
+                  Google Maps API Key Required
+                </p>
+                <p className="text-xs text-gray-500 mb-4">
+                  To use the map, add your API key to the .env file
+                </p>
+                <Button
+                  onClick={handleGetCurrentLocation}
+                  disabled={isGettingLocation}
+                  className="bg-[#2D2520] hover:bg-[#2D2520]/90 text-white w-full"
+                >
+                  <Navigation className="w-4 h-4 mr-2" />
+                  {isGettingLocation ? 'Getting location...' : 'Use Current Location (Coordinates)'}
+                </Button>
+              </div>
+            ) : (
+              <div className="bg-gray-50 border-2 border-gray-300 rounded-2xl p-6 text-center">
+                <div className="w-10 h-10 border-4 border-gray-300 border-t-[#C89F7B] rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-gray-600 text-sm">Loading map...</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

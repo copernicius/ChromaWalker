@@ -1,6 +1,6 @@
-import { RouterProvider } from "react-router";
-import { ErrorBoundary } from "./components/ErrorBoundary";
-import { router } from "./routes";
+import { RouterProvider } from 'react-router';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { router } from './routes';
 
 export const App = () => {
   return (

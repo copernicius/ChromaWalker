@@ -17,6 +17,10 @@ export default defineConfig({
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
     },
+    dedupe: ['react', 'react-dom', 'react-router', '@react-google-maps/api'],
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router', '@react-google-maps/api'],
   },
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.

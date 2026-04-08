@@ -1,32 +1,25 @@
 import { Locate, MapPin, TrendingUp } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Header } from '../components/Header';
-import { LazyImage } from '../components/LazyImage';
 import { MOCK_PHOTOS, RAINBOW_COLORS } from '../data/mockData';
 
-export const MapExplore = () => {
+export function MapExplore() {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
-  const photoLocations = useMemo(
-    () =>
-      MOCK_PHOTOS.reduce(
-        (acc, photo) => {
-          const key = `${photo.lat},${photo.lng}`;
-          if (!acc[key]) acc[key] = [];
-          acc[key].push(photo);
-          return acc;
-        },
-        {} as Record<string, typeof MOCK_PHOTOS>,
-      ),
-    [],
+  // Group photos by location
+  const photoLocations = MOCK_PHOTOS.reduce(
+    (acc, photo) => {
+      const key = `${photo.lat},${photo.lng}`;
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(photo);
+      return acc;
+    },
+    {} as Record<string, typeof MOCK_PHOTOS>,
   );
 
-  const selectedPhotoData = useMemo(
-    () => (selectedPhoto ? MOCK_PHOTOS.find((p) => p.id === selectedPhoto) : null),
-    [selectedPhoto],
-  );
-
-  const handleSelectPhoto = useCallback((id: string) => setSelectedPhoto(id), []);
+  const selectedPhotoData = selectedPhoto ? MOCK_PHOTOS.find((p) => p.id === selectedPhoto) : null;
 
   return (
     <div className="min-h-screen bg-[#F5F1ED] pb-24">
@@ -63,7 +56,7 @@ export const MapExplore = () => {
 
           {/* Photo Location Markers */}
           {Object.entries(photoLocations).map(([key, photos], index) => {
-            key.split(',').map(Number);
+            const [_lat, _lng] = key.split(',').map(Number);
             const mainPhoto = photos[0];
             const color = RAINBOW_COLORS.find((c) => c.id === mainPhoto.color);
 
@@ -75,7 +68,7 @@ export const MapExplore = () => {
               <button
                 type="button"
                 key={key}
-                onClick={() => handleSelectPhoto(mainPhoto.id)}
+                onClick={() => setSelectedPhoto(mainPhoto.id)}
                 className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all hover:scale-125 hover:z-10 animate-bounce-slow"
                 style={{
                   left: `${x}%`,
@@ -94,10 +87,10 @@ export const MapExplore = () => {
                     className="relative w-14 h-14 rounded-full border-4 border-white shadow-xl overflow-hidden transform transition-transform hover:rotate-6"
                     style={{ backgroundColor: color?.hex }}
                   >
-                    <LazyImage
+                    <img
                       src={mainPhoto.imageUrl}
                       alt={mainPhoto.location}
-                      className="w-full h-full"
+                      className="w-full h-full object-cover"
                     />
                   </div>
                   {photos.length > 1 && (
@@ -199,7 +192,7 @@ export const MapExplore = () => {
                   <button
                     type="button"
                     key={key}
-                    onClick={() => handleSelectPhoto(mainPhoto.id)}
+                    onClick={() => setSelectedPhoto(mainPhoto.id)}
                     className="w-full bg-white rounded-2xl p-4 shadow-sm hover:shadow-lg transition-all text-left transform hover:scale-102 hover:-translate-y-1"
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
@@ -250,4 +243,4 @@ export const MapExplore = () => {
       </div>
     </div>
   );
-};
+}

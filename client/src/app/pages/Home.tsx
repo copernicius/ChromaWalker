@@ -1,18 +1,27 @@
 import { Camera, Sparkles, TrendingUp, Trophy, Zap } from 'lucide-react';
-import { useMemo } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router';
 import { PhotoCard } from '../components/PhotoCard';
+import { PhotoDetail } from '../components/PhotoDetail';
 import { Progress } from '../components/ui/progress';
 import { MOCK_PHOTOS, MOCK_USER, RAINBOW_COLORS } from '../data/mockData';
 
-export const Home = () => {
-  const levelProgress = useMemo(() => (MOCK_USER.points / MOCK_USER.nextLevelPoints) * 100, []);
-  const recentPhotos = useMemo(() => MOCK_PHOTOS.slice(0, 4), []);
-  const dailyColor = useMemo(() => RAINBOW_COLORS[new Date().getDay() % RAINBOW_COLORS.length], []);
+export function Home() {
+  const nextLevel = (MOCK_USER.level + 1) * 1000;
+  const progressPercent = (MOCK_USER.points / nextLevel) * 100;
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+
+  const selectedPhotoData = selectedPhoto ? MOCK_PHOTOS.find((p) => p.id === selectedPhoto) : null;
+
+  // Get daily color (changes daily)
+  const dailyColor = RAINBOW_COLORS[new Date().getDay() % RAINBOW_COLORS.length];
+
+  // Get recent photos
+  const recentPhotos = MOCK_PHOTOS.slice(0, 4);
 
   return (
-    <div className="min-h-screen bg-[#F5F1ED] pb-24 pt-6">
-      <div className="max-w-screen-xl mx-auto px-4">
+    <div className="min-h-screen bg-[#F5F1ED] pb-24">
+      <div className="max-w-screen-xl mx-auto px-4 pt-8">
         {/* Header with Branding */}
         <div className="mb-8 animate-fade-in">
           <div className="flex items-center justify-between mb-2">
@@ -55,10 +64,10 @@ export const Home = () => {
                 Progress to Level {MOCK_USER.level + 1}
               </span>
               <span className="font-semibold text-[#2D2520]">
-                {MOCK_USER.points}/{MOCK_USER.nextLevelPoints}
+                {MOCK_USER.points}/{nextLevel}
               </span>
             </div>
-            <Progress value={levelProgress} className="h-2.5 bg-[#E8DFD8]" />
+            <Progress value={progressPercent} className="h-2.5 bg-[#E8DFD8]" />
           </div>
         </div>
 
@@ -149,33 +158,17 @@ export const Home = () => {
                 className="animate-scale-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <PhotoCard photo={photo} />
+                <PhotoCard photo={photo} onClick={() => setSelectedPhoto(photo.id)} />
               </div>
             ))}
           </div>
         </div>
-
-        {/* Color Palette Quick Access */}
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-4">Explore Colors</h2>
-          <div className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-            <div className="grid grid-cols-7 gap-2">
-              {RAINBOW_COLORS.map((color, index) => (
-                <Link
-                  key={color.id}
-                  to={`/gallery/${color.id}`}
-                  className="aspect-square rounded-xl shadow-sm hover:shadow-md transition-all hover:scale-110 active:scale-95 animate-scale-in"
-                  style={{
-                    backgroundColor: color.hex,
-                    animationDelay: `${index * 0.05}s`,
-                  }}
-                  title={color.name}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
+
+      {/* Photo Detail Modal */}
+      {selectedPhotoData && (
+        <PhotoDetail photo={selectedPhotoData} onClose={() => setSelectedPhoto(null)} />
+      )}
     </div>
   );
-};
+}
