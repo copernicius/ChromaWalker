@@ -1,5 +1,5 @@
-import { Camera, Check, MapPin, Sparkles, Target, Users, X, Zap } from 'lucide-react';
-import { useState } from 'react';
+import { Camera, Check, ImagePlus, MapPin, Sparkles, Target, Users, X, Zap } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Header } from '../components/Header';
 import { LocationPicker } from '../components/LocationPicker';
@@ -12,14 +12,17 @@ import {
   DialogTitle,
 } from '../components/ui/dialog';
 import { MOCK_MISSIONS, RAINBOW_COLORS } from '../data/mockData';
+import { useAppStore } from '../store/appStore';
 
 type TaskType = 'daily' | 'solo' | 'team' | null;
 
 export function Upload() {
   const navigate = useNavigate();
+  const { token } = useAppStore();
   const [location, setLocation] = useState('');
   const [imagePreview, setImagePreview] = useState<string>('');
   const [uploaded, setUploaded] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [selectedTaskType, setSelectedTaskType] = useState<TaskType>(null);
   const [selectedMission, setSelectedMission] = useState<string>('');
   const [colorTested, setColorTested] = useState(false);
@@ -28,6 +31,9 @@ export function Upload() {
   const [testingColor, setTestingColor] = useState(false);
   const [showMissionDialog, setShowMissionDialog] = useState(false);
   const [pendingTaskType, setPendingTaskType] = useState<'solo' | 'team' | null>(null);
+
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get daily color (same logic as Home page)
   const dailyColor = RAINBOW_COLORS[new Date().getDay() % RAINBOW_COLORS.length];
@@ -38,7 +44,6 @@ export function Upload() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
-        // Reset color test when new image is selected
         setColorTested(false);
         setColorTestPassed(false);
         setDetectedColor('');
@@ -122,12 +127,35 @@ export function Upload() {
     setDetectedColor('');
   };
 
-  const handleSubmit = () => {
-    // Simulate upload
-    setUploaded(true);
-    setTimeout(() => {
-      navigate('/galleries');
-    }, 2000);
+  const handleSubmit = async () => {
+    setIsUploading(true);
+    try {
+      const res = await fetch('/api/photos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          image: imagePreview,
+          location,
+          color: detectedColor,
+          taskType: selectedTaskType,
+          missionId: selectedMission || undefined,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+
+      setUploaded(true);
+      setTimeout(() => {
+        navigate('/galleries');
+      }, 2000);
+    } catch {
+      alert('Upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   if (uploaded) {
@@ -387,16 +415,32 @@ export function Upload() {
               )}
             </div>
           ) : (
-            <label className="block aspect-square border-2 border-dashed border-gray-300 rounded-2xl hover:border-[#C89F7B] transition-colors cursor-pointer mb-4 bg-[#F5F1ED]">
-              <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
-              <div className="h-full flex flex-col items-center justify-center text-gray-500">
-                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm">
-                  <Camera className="w-8 h-8 text-[#C89F7B]" />
-                </div>
-                <p className="font-semibold text-[#2D2520] mb-1">Tap to select photo</p>
-                <p className="text-sm">or use camera</p>
+            <div className="mb-4">
+              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageSelect} />
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="aspect-square border-2 border-dashed border-gray-300 rounded-2xl hover:border-[#C89F7B] transition-colors cursor-pointer bg-[#F5F1ED] flex flex-col items-center justify-center gap-3"
+                >
+                  <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
+                    <Camera className="w-7 h-7 text-[#C89F7B]" />
+                  </div>
+                  <p className="font-semibold text-[#2D2520] text-sm">Take Photo</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="aspect-square border-2 border-dashed border-gray-300 rounded-2xl hover:border-[#C89F7B] transition-colors cursor-pointer bg-[#F5F1ED] flex flex-col items-center justify-center gap-3"
+                >
+                  <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm">
+                    <ImagePlus className="w-7 h-7 text-[#C89F7B]" />
+                  </div>
+                  <p className="font-semibold text-[#2D2520] text-sm">From Gallery</p>
+                </button>
               </div>
-            </label>
+            </div>
           )}
 
           {/* Task Selection */}
@@ -763,9 +807,9 @@ export function Upload() {
               <Button
                 onClick={handleSubmit}
                 disabled={
+                  isUploading ||
                   !imagePreview ||
                   !colorTestPassed ||
-                  !location ||
                   ((selectedTaskType === 'solo' || selectedTaskType === 'team') && !selectedMission)
                 }
                 className="w-full bg-[#2D2520] hover:bg-[#2D2520]/90 text-white py-6 rounded-2xl text-base shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"

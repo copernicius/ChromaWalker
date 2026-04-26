@@ -1,14 +1,30 @@
 import { Camera, Sparkles, TrendingUp, Trophy, Zap } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { PhotoCard } from '../components/PhotoCard';
 import { PhotoDetail } from '../components/PhotoDetail';
 import { Progress } from '../components/ui/progress';
-import { MOCK_PHOTOS, MOCK_USER, RAINBOW_COLORS } from '../data/mockData';
+import { MOCK_PHOTOS, RAINBOW_COLORS } from '../data/mockData';
+import { useAppStore } from '../store/appStore';
 
 export function Home() {
-  const nextLevel = (MOCK_USER.level + 1) * 1000;
-  const progressPercent = (MOCK_USER.points / nextLevel) * 100;
+  const { user, token, login } = useAppStore();
+
+  useEffect(() => {
+    if (!token) return;
+    fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch user');
+        return res.json();
+      })
+      .then((data) => login(data, token))
+      .catch(() => {});
+  }, [token, login]);
+
+  const nextLevel = (user.level + 1) * 1000;
+  const progressPercent = (user.points / nextLevel) * 100;
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   const selectedPhotoData = selectedPhoto ? MOCK_PHOTOS.find((p) => p.id === selectedPhoto) : null;
@@ -37,7 +53,7 @@ export function Home() {
               to="/profile"
               className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FF8A65] to-[#9575CD] flex items-center justify-center text-white font-semibold shadow-md hover:scale-110 transition-transform active:scale-95"
             >
-              {MOCK_USER.username[0].toUpperCase()}
+              {user.username[0].toUpperCase()}
             </Link>
           </div>
           <p className="text-gray-600">Explore colors around you</p>
@@ -48,11 +64,11 @@ export function Home() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <p className="text-sm text-gray-500 mb-1">Welcome back,</p>
-              <p className="text-2xl font-semibold">{MOCK_USER.username}</p>
+              <p className="text-2xl font-semibold">{user.username}</p>
             </div>
             <div className="text-right">
               <div className="bg-[#2D2520] text-white px-4 py-2 rounded-full animate-pulse">
-                <p className="text-xs">Level {MOCK_USER.level}</p>
+                <p className="text-xs">Level {user.level}</p>
               </div>
             </div>
           </div>
@@ -61,10 +77,10 @@ export function Home() {
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#FFD54F] animate-pulse" />
-                Progress to Level {MOCK_USER.level + 1}
+                Progress to Level {user.level + 1}
               </span>
               <span className="font-semibold text-[#2D2520]">
-                {MOCK_USER.points}/{nextLevel}
+                {user.points}/{nextLevel}
               </span>
             </div>
             <Progress value={progressPercent} className="h-2.5 bg-[#E8DFD8]" />
@@ -80,7 +96,7 @@ export function Home() {
             <div className="w-10 h-10 bg-[#FF8A65]/10 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transition-transform">
               <Camera className="w-5 h-5 text-[#FF8A65]" />
             </div>
-            <p className="text-2xl font-bold text-[#2D2520]">{MOCK_USER.photosUploaded}</p>
+            <p className="text-2xl font-bold text-[#2D2520]">{user.photosUploaded}</p>
             <p className="text-xs text-gray-600 mt-1">Photos</p>
           </div>
           <div
@@ -90,7 +106,7 @@ export function Home() {
             <div className="w-10 h-10 bg-[#FFD54F]/20 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transition-transform">
               <Trophy className="w-5 h-5 text-[#F4C430]" />
             </div>
-            <p className="text-2xl font-bold text-[#2D2520]">{MOCK_USER.missionsCompleted}</p>
+            <p className="text-2xl font-bold text-[#2D2520]">{user.missionsCompleted}</p>
             <p className="text-xs text-gray-600 mt-1">Missions</p>
           </div>
           <div

@@ -1,21 +1,15 @@
-import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
+import { importLibrary, setOptions } from '@googlemaps/js-api-loader';
 import { MapPin, Navigation } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 
-const mapContainerStyle = {
-  width: '100%',
-  height: '400px',
-};
+setOptions({
+  key: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+  v: 'weekly',
+});
 
-const defaultCenter = {
-  lat: 40.7128,
-  lng: -74.006, // Default to New York City
-};
-
-// Get Google Maps API key from environment variable
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+const defaultCenter = { lat: -36.8485, lng: 174.7633 }; // Auckland
 
 interface LocationPickerProps {
   location: string;
@@ -24,16 +18,102 @@ interface LocationPickerProps {
 
 export function LocationPicker({ location, onLocationChange }: LocationPickerProps) {
   const [showMapDialog, setShowMapDialog] = useState(false);
-  const [markerPosition, setMarkerPosition] = useState(defaultCenter);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  // Load Google Maps script only if API key exists
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    id: 'google-map-script',
-  });
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+  const reverseGeocodeRef = useRef<(lat: number, lng: number) => void>(undefined);
 
-  // Get current location using browser's geolocation API
+  // Pre-load geocoding library
+  useEffect(() => {
+    importLibrary('geocoding')
+      .then((lib) => {
+        geocoderRef.current = new lib.Geocoder();
+      })
+      .catch(() => setLoadError(true));
+  }, []);
+
+  const reverseGeocode = useCallback(
+    (lat: number, lng: number) => {
+      if (!geocoderRef.current) {
+        onLocationChange(`${lat.toFixed(6)}, ${lng.toFixed(6)}`, { lat, lng });
+        return;
+      }
+      geocoderRef.current.geocode(
+        { location: { lat, lng } },
+        (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
+          if (status === 'OK' && results?.[0]) {
+            onLocationChange(results[0].formatted_address, { lat, lng });
+          } else {
+            onLocationChange(`${lat.toFixed(6)}, ${lng.toFixed(6)}`, { lat, lng });
+          }
+        },
+      );
+    },
+    [onLocationChange],
+  );
+
+  // Keep a stable ref so map listeners always call the latest reverseGeocode
+  reverseGeocodeRef.current = reverseGeocode;
+
+  // Callback ref: fires when the map container div mounts into the DOM
+  const mapContainerRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (!node || mapRef.current) return;
+
+      const initMap = async () => {
+        try {
+          const mapsLib = await importLibrary('maps');
+          const markerLib = await importLibrary('marker');
+
+          const map = new mapsLib.Map(node, {
+            center: defaultCenter,
+            zoom: 13,
+            mapId: 'chromawalk-map',
+          });
+          mapRef.current = map;
+
+          const marker = new markerLib.AdvancedMarkerElement({
+            map,
+            position: defaultCenter,
+            gmpDraggable: true,
+          });
+          markerRef.current = marker;
+
+          map.addListener('click', (e: google.maps.MapMouseEvent) => {
+            if (e.latLng) {
+              const pos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+              marker.position = pos;
+              reverseGeocodeRef.current?.(pos.lat, pos.lng);
+            }
+          });
+
+          marker.addListener('dragend', () => {
+            const pos = marker.position as google.maps.LatLngLiteral;
+            if (pos) {
+              reverseGeocodeRef.current?.(pos.lat, pos.lng);
+            }
+          });
+        } catch {
+          setLoadError(true);
+        }
+      };
+
+      initMap();
+    },
+    [],
+  );
+
+  // Clean up map instance when dialog closes
+  useEffect(() => {
+    if (!showMapDialog) {
+      mapRef.current = null;
+      markerRef.current = null;
+    }
+  }, [showMapDialog]);
+
   const handleGetCurrentLocation = useCallback(() => {
     setIsGettingLocation(true);
 
@@ -44,51 +124,24 @@ export function LocationPicker({ location, onLocationChange }: LocationPickerPro
     }
 
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
+      (position) => {
         const { latitude, longitude } = position.coords;
         const coords = { lat: latitude, lng: longitude };
 
-        // Update marker position for map
-        setMarkerPosition(coords);
-
-        // Reverse geocode to get address
-        if (GOOGLE_MAPS_API_KEY) {
-          try {
-            const response = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`,
-            );
-
-            if (response.ok) {
-              const data = await response.json();
-              if (data.results?.[0]) {
-                onLocationChange(data.results[0].formatted_address, coords);
-              } else {
-                // Fallback to coordinates
-                onLocationChange(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`, coords);
-              }
-            } else {
-              // Fallback to coordinates
-              onLocationChange(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`, coords);
-            }
-          } catch (_error) {
-            // Fallback to coordinates if geocoding fails
-            onLocationChange(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`, coords);
-          }
-        } else {
-          // No API key, just use coordinates
-          onLocationChange(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`, coords);
+        if (mapRef.current && markerRef.current) {
+          mapRef.current.panTo(coords);
+          markerRef.current.position = coords;
         }
 
-        // Close dialog if it was open
+        reverseGeocode(latitude, longitude);
+
         if (showMapDialog) {
           setShowMapDialog(false);
         }
-
         setIsGettingLocation(false);
       },
       (error) => {
         let errorMessage = 'Unable to get your current location. ';
-
         switch (error.code) {
           case error.PERMISSION_DENIED:
             errorMessage +=
@@ -104,52 +157,12 @@ export function LocationPicker({ location, onLocationChange }: LocationPickerPro
           default:
             errorMessage += 'Please enter your location manually.';
         }
-
         console.error('Geolocation error:', error.code, error.message);
         alert(errorMessage);
         setIsGettingLocation(false);
       },
     );
-  }, [onLocationChange, showMapDialog]);
-
-  // Handle map click to select location
-  const handleMapClick = useCallback(
-    async (e: google.maps.MapMouseEvent) => {
-      if (e.latLng) {
-        const lat = e.latLng.lat();
-        const lng = e.latLng.lng();
-        const coords = { lat, lng };
-
-        setMarkerPosition(coords);
-
-        // Reverse geocode to get address
-        if (GOOGLE_MAPS_API_KEY) {
-          try {
-            const response = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_MAPS_API_KEY}`,
-            );
-
-            if (response.ok) {
-              const data = await response.json();
-              if (data.results?.[0]) {
-                onLocationChange(data.results[0].formatted_address, coords);
-              } else {
-                onLocationChange(`${lat.toFixed(6)}, ${lng.toFixed(6)}`, coords);
-              }
-            } else {
-              onLocationChange(`${lat.toFixed(6)}, ${lng.toFixed(6)}`, coords);
-            }
-          } catch (_error) {
-            onLocationChange(`${lat.toFixed(6)}, ${lng.toFixed(6)}`, coords);
-          }
-        } else {
-          // No API key, just use coordinates
-          onLocationChange(`${lat.toFixed(6)}, ${lng.toFixed(6)}`, coords);
-        }
-      }
-    },
-    [onLocationChange],
-  );
+  }, [reverseGeocode, showMapDialog]);
 
   const handleConfirmLocation = () => {
     setShowMapDialog(false);
@@ -203,24 +216,34 @@ export function LocationPicker({ location, onLocationChange }: LocationPickerPro
               Select Location
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-600 leading-relaxed">
-              {GOOGLE_MAPS_API_KEY
-                ? 'Click on the map to select a location, or use the button below to get your current location'
-                : 'Use your current location or enter an address manually'}
+              Click on the map to select a location, or use the button below to get your current
+              location
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {GOOGLE_MAPS_API_KEY && isLoaded ? (
-              <>
-                <GoogleMap
-                  mapContainerStyle={mapContainerStyle}
-                  center={markerPosition}
-                  zoom={13}
-                  onClick={handleMapClick}
+            {loadError ? (
+              <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-6 text-center">
+                <MapPin className="w-10 h-10 text-red-400 mx-auto mb-3" />
+                <p className="text-red-600 mb-1 font-semibold text-sm">Error Loading Maps</p>
+                <p className="text-xs text-red-500 mb-4">
+                  Check your API key and internet connection
+                </p>
+                <Button
+                  onClick={handleGetCurrentLocation}
+                  disabled={isGettingLocation}
+                  className="bg-[#2D2520] hover:bg-[#2D2520]/90 text-white w-full"
                 >
-                  <Marker position={markerPosition} />
-                </GoogleMap>
-
+                  <Navigation className="w-4 h-4 mr-2" />
+                  {isGettingLocation ? 'Getting location...' : 'Use Current Location'}
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div
+                  ref={mapContainerRef}
+                  className="w-full h-[400px] rounded-2xl overflow-hidden bg-gray-100"
+                />
                 <div className="flex gap-2">
                   <Button
                     onClick={handleGetCurrentLocation}
@@ -238,45 +261,6 @@ export function LocationPicker({ location, onLocationChange }: LocationPickerPro
                   </Button>
                 </div>
               </>
-            ) : loadError ? (
-              <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-6 text-center">
-                <MapPin className="w-10 h-10 text-red-400 mx-auto mb-3" />
-                <p className="text-red-600 mb-1 font-semibold text-sm">Error Loading Maps</p>
-                <p className="text-xs text-red-500 mb-4">
-                  Check your API key and internet connection
-                </p>
-                <Button
-                  onClick={handleGetCurrentLocation}
-                  disabled={isGettingLocation}
-                  className="bg-[#2D2520] hover:bg-[#2D2520]/90 text-white w-full"
-                >
-                  <Navigation className="w-4 h-4 mr-2" />
-                  {isGettingLocation ? 'Getting location...' : 'Use Current Location (Coordinates)'}
-                </Button>
-              </div>
-            ) : !GOOGLE_MAPS_API_KEY ? (
-              <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center">
-                <MapPin className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600 mb-1 font-semibold text-sm">
-                  Google Maps API Key Required
-                </p>
-                <p className="text-xs text-gray-500 mb-4">
-                  To use the map, add your API key to the .env file
-                </p>
-                <Button
-                  onClick={handleGetCurrentLocation}
-                  disabled={isGettingLocation}
-                  className="bg-[#2D2520] hover:bg-[#2D2520]/90 text-white w-full"
-                >
-                  <Navigation className="w-4 h-4 mr-2" />
-                  {isGettingLocation ? 'Getting location...' : 'Use Current Location (Coordinates)'}
-                </Button>
-              </div>
-            ) : (
-              <div className="bg-gray-50 border-2 border-gray-300 rounded-2xl p-6 text-center">
-                <div className="w-10 h-10 border-4 border-gray-300 border-t-[#C89F7B] rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-gray-600 text-sm">Loading map...</p>
-              </div>
             )}
           </div>
         </DialogContent>

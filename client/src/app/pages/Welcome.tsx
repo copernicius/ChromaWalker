@@ -1,16 +1,38 @@
-import { useState } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Button } from '../components/ui/button';
+import { useAppStore } from '../store/appStore';
 
 export function Welcome() {
   const navigate = useNavigate();
-  const [isStarting, setIsStarting] = useState(false);
+  const [error, setError] = useState('');
+  const { isAuthenticated, login } = useAppStore();
 
-  const handleStart = () => {
-    setIsStarting(true);
-    setTimeout(() => {
+  useEffect(() => {
+    if (isAuthenticated) {
       navigate('/home');
-    }, 300);
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
+    try {
+      setError('');
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: credentialResponse.credential }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Login failed');
+      }
+
+      const data = await res.json();
+      login(data.user, data.token);
+      navigate('/home');
+    } catch {
+      setError('Login failed. Please try again.');
+    }
   };
 
   return (
@@ -80,22 +102,17 @@ export function Welcome() {
         </p>
       </div>
 
-      {/* CTA Button */}
-      <div className="w-full max-w-md">
-        <Button
-          onClick={handleStart}
-          disabled={isStarting}
-          className="w-full bg-[#2D2520] hover:bg-[#2D2520]/90 text-white rounded-full py-6 text-lg shadow-lg"
-        >
-          Let's Start Walking
-        </Button>
-
-        <p className="text-center text-sm text-gray-600 mt-4">
-          Already have an account?{' '}
-          <button type="button" className="text-[#C89F7B] font-medium">
-            Sign in
-          </button>
-        </p>
+      {/* Google Login */}
+      <div className="w-full max-w-md flex flex-col items-center gap-4">
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => setError('Login failed. Please try again.')}
+          size="large"
+          width="300"
+          text="continue_with"
+          shape="pill"
+        />
+        {error && <p className="text-red-500 text-sm">{error}</p>}
       </div>
     </div>
   );

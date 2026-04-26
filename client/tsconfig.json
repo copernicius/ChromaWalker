@@ -21,7 +21,7 @@
     "noFallthroughCasesInSwitch": true,
 
     /* Types */
-    "types": ["vitest/globals"],
+    "types": ["vitest/globals", "google.maps"],
 
     /* Path aliases */
     "baseUrl": ".",

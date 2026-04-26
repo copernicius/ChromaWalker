@@ -1,91 +1,120 @@
-# MERN Stack Project
+# ChromaWalk
 
-A full-stack application built with MongoDB, Express, React, and Node.js, containerized with Docker Compose for easy development and deployment.
+A color exploration app where users walk, discover, and capture colors in their world. Built with the MERN stack (MongoDB, Express, React, Node.js).
 
 ## Project Structure
 
 ```
-├── client/          # React frontend (Vite)
+├── client/          # React frontend (Vite + React 19)
 ├── server/          # Express/Node.js backend
-├── docker/          # Build docker development env
+├── docker/          # Docker development environment
+├── data/            # MongoDB data volume
 ```
+
+## Tech Stack
+
+### Frontend
+- **React 19** with TypeScript
+- **React Router 7** for routing
+- **Zustand** for state management
+- **Tailwind CSS 4** + Radix UI for styling
+- **Vite** for bundling
+- **MSW (Mock Service Worker)** for API mocking in development
+- **Google OAuth 2.0** for authentication
+- **Google Maps API** for location picking
+
+### Backend
+- **Express 5** with Node.js
+- **MongoDB** with Mongoose
+- **JWT** for authentication
+- **Google Auth Library** for OAuth token verification
 
 ## Prerequisites
 
-- Docker
-- Docker Compose
+- Node.js 18+
+- pnpm
+- Docker & Docker Compose (for full-stack development)
 
-## Quick Start
+## Getting Started
 
-### First-time Setup
+### Frontend Only (with API mocking)
 
-Initialize the project and start all services:
+```bash
+cd client
+pnpm install
+pnpm dev
+```
+
+The dev server starts at `https://localhost:5173`. MSW intercepts API calls and returns mock responses, so no backend is needed for frontend development.
+
+### Full Stack (with Docker)
 
 ```bash
 cd docker
 make init
 ```
 
-This will:
-- Create the data directory for MongoDB
-- Build and start all containers
-- Access the frontend at http://localhost:5173
-- Access the backend at http://localhost:3000
+This starts all services:
+- Frontend: https://localhost:5173
+- Backend API: http://localhost:3000
+- MongoDB: localhost:27017
+
+## Environment Variables
+
+Create a `client/.env` file:
+
+```env
+VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+```
+
+Create a `server/.env` file:
+
+```env
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+JWT_SECRET=your_jwt_secret
+MONGODB_URI=mongodb://localhost:27017/chromawalk
+```
+
+## API Mocking (MSW)
+
+In development, [MSW](https://mswjs.io/) intercepts API requests at the service worker level. Mock handlers are defined in `client/src/mocks/handlers.ts`.
+
+Currently mocked endpoints:
+- `POST /api/auth/google` - Google OAuth login
+- `GET /api/auth/me` - Get current user
+- `POST /api/photos` - Upload photo
+
+To add a new mock, add a handler to the `handlers` array in `client/src/mocks/handlers.ts`.
 
 ## Available Commands
 
-All commands are managed via Makefile:
+### Frontend
 
 | Command | Description |
 |---------|-------------|
-| `make init` | Initialize project (create data directory and start all services) |
-| `make up` | Start all services in detached mode with rebuild |
-| `make down` | Stop and remove all containers |
-| `make restart` | Restart all services |
-| `make build` | Build all images without cache |
-| `make logs` | View real-time logs from all services |
-| `make ps` | View container status |
-| `make clean` | Deep clean: stop containers and remove all related images and volumes |
-| `make shell-server` | Enter the server container shell |
-| `make shell-client` | Enter the client container shell |
-| `make shell-db` | Enter the MongoDB shell (mongosh) |
+| `pnpm dev` | Start dev server |
+| `pnpm build` | Production build |
+| `pnpm typecheck` | TypeScript type checking |
+| `pnpm check` | Biome lint + format check |
+| `pnpm test` | Run tests |
 
-## Services
+### Docker
 
-### MongoDB
-- **Image**: mongo:7.0
-- **Port**: 27017
-- **Data Volume**: ./data/db
+| Command | Description |
+|---------|-------------|
+| `make init` | Initialize project and start all services |
+| `make up` | Start all services |
+| `make down` | Stop all services |
+| `make logs` | View logs |
+| `make clean` | Remove containers, volumes, and images |
 
-### Server (Express/Node.js)
-- **Port**: 3000
-- **Working Directory**: /app/server
-- **Auto-install dependencies and start with nodemon**
+## Features
 
-### Client (React/Vite)
-- **Port**: 5173
-- **Working Directory**: /app/client
-- **Auto-install dependencies and start dev server**
-
-## Development Workflow
-
-1. **Start the project**: `make up`
-2. **View logs**: `make logs`
-3. **Enter server shell**: `make shell-server`
-4. **Enter client shell**: `make shell-client`
-5. **Access MongoDB**: `make shell-db`
-6. **Stop services**: `make down`
-
-## Cleanup
-
-To completely clean up the project (remove containers, volumes, and images):
-
-```bash
-make clean
-```
-
-## Ports
-
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:3000
-- MongoDB: localhost:27017
+- Google OAuth 2.0 login
+- Photo capture via device camera or gallery
+- Color detection from photos
+- Daily color challenges and missions (solo/team)
+- Location tagging with Google Maps
+- Color galleries and map exploration
+- User profiles with levels and achievements

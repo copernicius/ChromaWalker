@@ -4,11 +4,15 @@ import { MOCK_MISSIONS, MOCK_PHOTOS, MOCK_USER } from '../data/mockData';
 
 interface AppState {
   user: UserProfile;
+  token: string | null;
+  isAuthenticated: boolean;
   photos: Photo[];
   missions: Mission[];
 }
 
 interface AppActions {
+  login: (user: UserProfile, token: string) => void;
+  logout: () => void;
   likePhoto: (photoId: string) => void;
   favoritePhoto: (photoId: string) => void;
   addPhoto: (photo: Photo) => void;
@@ -18,10 +22,27 @@ interface AppActions {
 
 export type AppStore = AppState & AppActions;
 
+const savedToken = localStorage.getItem('token');
+const savedUser = localStorage.getItem('user');
+
 export const useAppStore = create<AppStore>((set) => ({
-  user: MOCK_USER,
+  user: savedUser ? JSON.parse(savedUser) : MOCK_USER,
+  token: savedToken,
+  isAuthenticated: !!savedToken,
   photos: MOCK_PHOTOS,
   missions: MOCK_MISSIONS,
+
+  login: (user, token) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    set({ user, token, isAuthenticated: true });
+  },
+
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    set({ token: null, isAuthenticated: false, user: MOCK_USER });
+  },
 
   likePhoto: (photoId) =>
     set((state) => ({

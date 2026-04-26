@@ -17,10 +17,10 @@ export default defineConfig({
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
     },
-    dedupe: ['react', 'react-dom', 'react-router', '@react-google-maps/api'],
+    dedupe: ['react', 'react-dom', 'react-router', '@googlemaps/js-api-loader'],
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router', '@react-google-maps/api'],
+    include: ['react', 'react-dom', 'react-router', '@googlemaps/js-api-loader'],
   },
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
@@ -29,6 +29,9 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

@@ -34,10 +34,12 @@ export function PhotoCard({ photo, onClick }: PhotoCardProps) {
   };
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer w-full text-left"
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.(); }}
     >
       <div className="aspect-square relative">
         <img
@@ -91,6 +93,6 @@ export function PhotoCard({ photo, onClick }: PhotoCardProps) {
           </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }

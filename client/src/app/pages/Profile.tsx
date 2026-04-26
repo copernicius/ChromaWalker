@@ -1,5 +1,6 @@
 import { Award, Camera, Heart, LogIn, LogOut, MapPin, Settings, Upload } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Header } from '../components/Header';
 import { PhotoCard } from '../components/PhotoCard';
 import { Button } from '../components/ui/button';
@@ -8,16 +9,18 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Progress } from '../components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { MOCK_ACHIEVEMENTS, MOCK_PHOTOS, MOCK_USER, RAINBOW_COLORS } from '../data/mockData';
+import { MOCK_ACHIEVEMENTS, MOCK_PHOTOS, RAINBOW_COLORS } from '../data/mockData';
+import { useAppStore } from '../store/appStore';
 
 export function Profile() {
-  const levelProgress = (MOCK_USER.points / MOCK_USER.nextLevelPoints) * 100;
-  const userPhotos = MOCK_PHOTOS.filter((p) => p.username === MOCK_USER.username);
+  const { user, isAuthenticated, logout } = useAppStore();
+  const navigate = useNavigate();
+  const levelProgress = (user.points / user.nextLevelPoints) * 100;
+  const userPhotos = MOCK_PHOTOS.filter((p) => p.username === user.username);
   const totalLikes = userPhotos.reduce((sum, photo) => sum + photo.likes, 0);
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editedUsername, setEditedUsername] = useState(MOCK_USER.username);
+  const [editedUsername, setEditedUsername] = useState(user.username);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'photos' | 'achievements'>('photos');
 
@@ -36,22 +39,15 @@ export function Profile() {
     // In a real app, this would update the user profile in the backend
     // For now, we'll just close the dialog
     setIsEditDialogOpen(false);
-    // Note: In a real implementation, you'd update MOCK_USER here
+    // Note: In a real implementation, you'd update user here
   };
 
   const handleGoogleLogin = () => {
-    // In a real app, this would redirect to Google OAuth
-    // For demo purposes, we'll simulate successful login
-    // window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code&scope=email%20profile';
-
-    // Simulating successful OAuth login
-    setTimeout(() => {
-      setIsLoggedIn(true);
-    }, 500);
+    navigate('/');
   };
 
   // Show login screen if not logged in
-  if (!isLoggedIn) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#F5F1ED] pb-24">
         <Header title="" />
@@ -170,11 +166,11 @@ export function Profile() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
-                {MOCK_USER.username[0].toUpperCase()}
+                {user.username[0].toUpperCase()}
               </div>
               <div>
-                <h2 className="text-2xl font-bold">{MOCK_USER.username}</h2>
-                <p className="text-gray-600">Level {MOCK_USER.level} Explorer</p>
+                <h2 className="text-2xl font-bold">{user.username}</h2>
+                <p className="text-gray-600">Level {user.level} Explorer</p>
               </div>
             </div>
             <button
@@ -189,9 +185,9 @@ export function Profile() {
           {/* Level Progress */}
           <div className="space-y-2 mb-6">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Progress to Level {MOCK_USER.level + 1}</span>
+              <span className="text-gray-600">Progress to Level {user.level + 1}</span>
               <span className="font-medium">
-                {MOCK_USER.points}/{MOCK_USER.nextLevelPoints}
+                {user.points}/{user.nextLevelPoints}
               </span>
             </div>
             <Progress value={levelProgress} className="h-3" />
@@ -211,7 +207,7 @@ export function Profile() {
               >
                 <Camera className="w-6 h-6 text-blue-600" />
               </div>
-              <p className="text-2xl font-bold">{MOCK_USER.photosUploaded}</p>
+              <p className="text-2xl font-bold">{user.photosUploaded}</p>
               <p className="text-xs text-gray-600">Photos</p>
             </button>
             <button
@@ -385,7 +381,7 @@ export function Profile() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    MOCK_USER.username[0].toUpperCase()
+                    user.username[0].toUpperCase()
                   )}
                 </div>
                 <div>
@@ -446,8 +442,9 @@ export function Profile() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setIsLoggedIn(false);
+                  logout();
                   setIsEditDialogOpen(false);
+                  navigate('/');
                 }}
                 className="w-full border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
               >
