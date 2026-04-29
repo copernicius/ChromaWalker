@@ -1,11 +1,9 @@
 import { Clock, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { useParams } from 'react-router';
-import { Header } from '../components/Header';
-import { PhotoCard } from '../components/PhotoCard';
-import { PhotoDetail } from '../components/PhotoDetail';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { MOCK_PHOTOS, RAINBOW_COLORS, RARE_COLORS } from '../data/mockData';
+import { Header, PhotoCard, PhotoDetail } from '../components';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui';
+import { MOCK_PHOTOS, RAINBOW_COLORS, RARE_COLORS } from '../data';
 
 export function ColorGallery() {
   const { colorId } = useParams();

@@ -1,6 +1,6 @@
-const { OAuth2Client } = require('google-auth-library');
-const User = require('../models/User');
-const { signToken } = require('../middleware/auth');
+const { OAuth2Client } = require("google-auth-library");
+const User = require("../models/User");
+const { signToken } = require("../middleware/auth");
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
@@ -10,7 +10,7 @@ async function googleLogin(req, res) {
   try {
     const { credential } = req.body;
     if (!credential) {
-      return res.status(400).json({ error: 'Missing credential' });
+      return res.status(400).json({ error: "Missing credential" });
     }
 
     // Verify the Google ID token
@@ -28,7 +28,7 @@ async function googleLogin(req, res) {
         googleId,
         email,
         username: name,
-        avatarUrl: picture || '',
+        avatarUrl: picture || "",
       });
     }
 
@@ -50,20 +50,20 @@ async function googleLogin(req, res) {
       token,
     });
   } catch (err) {
-    console.error('Google login failed:', err);
-    res.status(401).json({ error: 'Invalid Google token' });
+    console.error("Google login failed:", err);
+    res.status(401).json({ error: "Invalid Google token" });
   }
 }
 
 // GET /api/auth/me
 async function getMe(req, res) {
   try {
-    const user = await User.findById(req.userId).select('-__v');
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const user = await User.findById(req.userId).select("-__v");
+    if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
   } catch (err) {
-    console.error('Failed to get user:', err);
-    res.status(500).json({ error: 'Failed to get user' });
+    console.error("Failed to get user:", err);
+    res.status(500).json({ error: "Failed to get user" });
   }
 }
 

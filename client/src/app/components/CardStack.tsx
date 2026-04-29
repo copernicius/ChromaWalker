@@ -1,7 +1,7 @@
 import { Heart, Info, MessageCircle, Star, X } from 'lucide-react';
 import { AnimatePresence, type PanInfo, motion } from 'motion/react';
 import { useState } from 'react';
-import { type Photo, RAINBOW_COLORS } from '../data/mockData';
+import { type Photo, RAINBOW_COLORS } from '../data';
 
 interface CardStackProps {
   photos: Photo[];

@@ -23,6 +23,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 # 3. 只保留前端必要的全局工具
 # 移除了 pm2, nodemon, express-generator (这些是后端用的)
 RUN npm install -g typescript
+RUN npm install -g pnpm
 
 # 4. 设置环境变量与工作区
 ENV NODE_ENV=development

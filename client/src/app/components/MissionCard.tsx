@@ -1,5 +1,5 @@
 import { Crown, MapPin, Sparkles, Trophy, Users, Zap } from 'lucide-react';
-import type { Mission } from '../data/mockData';
+import type { Mission } from '../data';
 
 interface MissionCardProps {
   mission: Mission;

@@ -1,7 +1,7 @@
 import { Locate, MapPin, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
-import { Header } from '../components/Header';
-import { MOCK_PHOTOS, RAINBOW_COLORS } from '../data/mockData';
+import { Header } from '../components';
+import { MOCK_PHOTOS, RAINBOW_COLORS } from '../data';
 
 export function MapExplore() {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);

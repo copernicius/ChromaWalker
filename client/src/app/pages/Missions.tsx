@@ -1,10 +1,8 @@
 import { Crown, MapPin, Plus, Target, Trophy, Users, X, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Header } from '../components/Header';
-import { MissionCard } from '../components/MissionCard';
-import { Progress } from '../components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { MOCK_MISSIONS } from '../data/mockData';
+import { Header, MissionCard } from '../components';
+import { Progress, Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui';
+import { useMissionsQuery } from '../queries';
 
 export function Missions() {
   const [_selectedMission, setSelectedMission] = useState<string | null>(null);
@@ -12,8 +10,9 @@ export function Missions() {
   const [hasJoinedTeam, setHasJoinedTeam] = useState(false);
   const [missionStarted, setMissionStarted] = useState(false);
 
-  const soloMissions = MOCK_MISSIONS.filter((m) => !m.teamMission);
-  const teamMissions = MOCK_MISSIONS.filter((m) => m.teamMission);
+  const { data: missions = [] } = useMissionsQuery();
+  const soloMissions = missions.filter((m) => !m.teamMission);
+  const teamMissions = missions.filter((m) => m.teamMission);
 
   // Mock team data
   const currentTeamMission = teamMissions[0]; // Using the first team mission as the current one

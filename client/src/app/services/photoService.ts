@@ -1,4 +1,4 @@
-import type { Achievement, Mission, Photo, UserProfile } from '../data/mockData';
+import type { Achievement, Mission, Photo, UserProfile } from '../data';
 import {
   MOCK_ACHIEVEMENTS,
   MOCK_MISSIONS,
@@ -6,7 +6,7 @@ import {
   MOCK_USER,
   RAINBOW_COLORS,
   RARE_COLORS,
-} from '../data/mockData';
+} from '../data';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

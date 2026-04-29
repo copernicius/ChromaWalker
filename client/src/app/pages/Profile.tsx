@@ -1,16 +1,24 @@
 import { Award, Camera, Heart, LogIn, LogOut, MapPin, Settings, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Header } from '../components/Header';
-import { PhotoCard } from '../components/PhotoCard';
-import { Button } from '../components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Progress } from '../components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { MOCK_ACHIEVEMENTS, MOCK_PHOTOS, RAINBOW_COLORS } from '../data/mockData';
-import { useAppStore } from '../store/appStore';
+import { Header, PhotoCard } from '../components';
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Progress,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '../components/ui';
+import { MOCK_ACHIEVEMENTS, MOCK_PHOTOS, RAINBOW_COLORS } from '../data';
+import { queryClient } from '../lib';
+import { useAppStore } from '../store';
 
 export function Profile() {
   const { user, isAuthenticated, logout } = useAppStore();
@@ -443,6 +451,7 @@ export function Profile() {
                 variant="outline"
                 onClick={() => {
                   logout();
+                  queryClient.clear();
                   setIsEditDialogOpen(false);
                   navigate('/');
                 }}

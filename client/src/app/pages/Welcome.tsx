@@ -1,7 +1,10 @@
 import { GoogleLogin } from '@react-oauth/google';
+import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useAppStore } from '../store/appStore';
+import type { UserProfile } from '../data';
+import { queryClient } from '../lib';
+import { useAppStore } from '../store';
 
 export function Welcome() {
   const navigate = useNavigate();
@@ -14,25 +17,31 @@ export function Welcome() {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
-    try {
-      setError('');
+  const loginMutation = useMutation({
+    mutationFn: async (credential: string) => {
       const res = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: credentialResponse.credential }),
+        body: JSON.stringify({ credential }),
       });
-
-      if (!res.ok) {
-        throw new Error('Login failed');
-      }
-
-      const data = await res.json();
+      if (!res.ok) throw new Error('Login failed');
+      return (await res.json()) as { user: UserProfile; token: string };
+    },
+    onSuccess: (data) => {
+      setError('');
       login(data.user, data.token);
+      queryClient.setQueryData(['auth', 'me'], data.user);
       navigate('/home');
-    } catch {
+    },
+    onError: () => {
       setError('Login failed. Please try again.');
-    }
+    },
+  });
+
+  const handleGoogleSuccess = (credentialResponse: { credential?: string }) => {
+    if (loginMutation.isPending) return;
+    if (!credentialResponse.credential) return;
+    loginMutation.mutate(credentialResponse.credential);
   };
 
   return (
@@ -104,15 +113,21 @@ export function Welcome() {
 
       {/* Google Login */}
       <div className="w-full max-w-md flex flex-col items-center gap-4">
-        <GoogleLogin
-          onSuccess={handleGoogleSuccess}
-          onError={() => setError('Login failed. Please try again.')}
-          size="large"
-          width="300"
-          text="continue_with"
-          shape="pill"
-        />
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        <div
+          className={loginMutation.isPending ? 'pointer-events-none opacity-50' : ''}
+          aria-busy={loginMutation.isPending}
+        >
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => setError('Login failed. Please try again.')}
+            size="large"
+            width="300"
+            text="continue_with"
+            shape="pill"
+          />
+        </div>
+        {loginMutation.isPending && <p className="text-gray-500 text-sm">Signing in…</p>}
+        {error && !loginMutation.isPending && <p className="text-red-500 text-sm">{error}</p>}
       </div>
     </div>
   );

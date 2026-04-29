@@ -34,6 +34,8 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
+        // Inside docker-compose, `server` resolves to the server container.
+        // When running the client on the host, change this to http://localhost:3000.
         target: 'http://localhost:3000',
         changeOrigin: true,
       },

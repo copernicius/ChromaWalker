@@ -1,39 +1,27 @@
 import { Camera, Sparkles, TrendingUp, Trophy, Zap } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router';
-import { PhotoCard } from '../components/PhotoCard';
-import { PhotoDetail } from '../components/PhotoDetail';
-import { Progress } from '../components/ui/progress';
-import { MOCK_PHOTOS, RAINBOW_COLORS } from '../data/mockData';
-import { useAppStore } from '../store/appStore';
+import { PhotoCard, PhotoDetail } from '../components';
+import { Progress } from '../components/ui';
+import { RAINBOW_COLORS } from '../data';
+import { usePhotosQuery } from '../queries';
+import { useAppStore } from '../store';
 
 export function Home() {
-  const { user, token, login } = useAppStore();
-
-  useEffect(() => {
-    if (!token) return;
-    fetch('/api/auth/me', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch user');
-        return res.json();
-      })
-      .then((data) => login(data, token))
-      .catch(() => {});
-  }, [token, login]);
+  const { user } = useAppStore();
+  const { data: photos, isLoading, isError } = usePhotosQuery();
 
   const nextLevel = (user.level + 1) * 1000;
   const progressPercent = (user.points / nextLevel) * 100;
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
-  const selectedPhotoData = selectedPhoto ? MOCK_PHOTOS.find((p) => p.id === selectedPhoto) : null;
+  const selectedPhotoData = selectedPhoto ? photos?.find((p) => p.id === selectedPhoto) : null;
 
   // Get daily color (changes daily)
   const dailyColor = RAINBOW_COLORS[new Date().getDay() % RAINBOW_COLORS.length];
 
   // Get recent photos
-  const recentPhotos = MOCK_PHOTOS.slice(0, 4);
+  const recentPhotos = photos?.slice(0, 4) ?? [];
 
   return (
     <div className="min-h-screen bg-[#F5F1ED] pb-24">
@@ -167,17 +155,37 @@ export function Home() {
               View All →
             </Link>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            {recentPhotos.map((photo, index) => (
-              <div
-                key={photo.id}
-                className="animate-scale-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <PhotoCard photo={photo} onClick={() => setSelectedPhoto(photo.id)} />
-              </div>
-            ))}
-          </div>
+
+          {isLoading && (
+            <div className="grid grid-cols-2 gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="aspect-square rounded-2xl bg-gray-200 animate-pulse"
+                />
+              ))}
+            </div>
+          )}
+
+          {isError && (
+            <div className="bg-white rounded-2xl p-6 text-center text-sm text-red-600">
+              Could not load photos. Please try again later.
+            </div>
+          )}
+
+          {!isLoading && !isError && (
+            <div className="grid grid-cols-2 gap-3">
+              {recentPhotos.map((photo, index) => (
+                <div
+                  key={photo.id}
+                  className="animate-scale-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <PhotoCard photo={photo} onClick={() => setSelectedPhoto(photo.id)} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

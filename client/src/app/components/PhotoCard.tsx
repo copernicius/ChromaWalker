@@ -1,6 +1,6 @@
 import { Heart, MessageCircle, Star } from 'lucide-react';
 import { useState } from 'react';
-import type { Photo } from '../data/mockData';
+import type { Photo } from '../data';
 
 interface PhotoCardProps {
   photo: Photo;

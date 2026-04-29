@@ -11,9 +11,8 @@ import {
   X,
 } from 'lucide-react';
 import { useState } from 'react';
-import { PhotoCard } from '../components/PhotoCard';
-import { PhotoDetail } from '../components/PhotoDetail';
-import { MOCK_PHOTOS, RAINBOW_COLORS, RARE_COLORS } from '../data/mockData';
+import { PhotoCard, PhotoDetail } from '../components';
+import { MOCK_PHOTOS, RAINBOW_COLORS, RARE_COLORS } from '../data';
 
 export function Galleries() {
   const [_searchQuery, _setSearchQuery] = useState('');

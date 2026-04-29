@@ -1,6 +1,6 @@
 import { Heart, MessageCircle, Share2, X } from 'lucide-react';
 import { useState } from 'react';
-import { RAINBOW_COLORS } from '../data/mockData';
+import { RAINBOW_COLORS } from '../data';
 
 interface Photo {
   id: string;

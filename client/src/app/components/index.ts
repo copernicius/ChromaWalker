@@ -5,5 +5,4 @@ export { PhotoDetail } from './PhotoDetail';
 export { MissionCard } from './MissionCard';
 export { CardStack } from './CardStack';
 export { LocationPicker } from './LocationPicker';
-export { ImageWithFallback } from './figma/ImageWithFallback';
 export { ErrorBoundary } from './ErrorBoundary';
