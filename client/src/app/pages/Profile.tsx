@@ -1,11 +1,14 @@
-import { Award, Camera, Heart, LogIn, LogOut, MapPin, Settings, Upload } from 'lucide-react';
+import { Award, Camera, Heart, LogIn, LogOut, MapPin, Settings, Star, Trash2, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Header, PhotoCard } from '../components';
+import { toast } from 'sonner';
+import { Header, PhotoCard, PhotoDetail } from '../components';
 import {
   Button,
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   Input,
@@ -16,25 +19,60 @@ import {
   TabsList,
   TabsTrigger,
 } from '../components/ui';
-import { MOCK_ACHIEVEMENTS, MOCK_PHOTOS, RAINBOW_COLORS } from '../data';
+import { MOCK_ACHIEVEMENTS, RAINBOW_COLORS } from '../data';
 import { queryClient } from '../lib';
+import {
+  useDeletePhotoMutation,
+  useMyBookmarksQuery,
+  usePhotosQuery,
+  useUpdateProfileMutation,
+  useUserLevel,
+} from '../queries';
 import { useAppStore } from '../store';
 
 export function Profile() {
-  const { user, isAuthenticated, logout } = useAppStore();
+  const { user, isAuthenticated, logout, setUser } = useAppStore();
   const navigate = useNavigate();
-  const levelProgress = (user.points / user.nextLevelPoints) * 100;
-  const userPhotos = MOCK_PHOTOS.filter((p) => p.username === user.username);
+  const { data: allPhotos = [] } = usePhotosQuery();
+  const deleteMutation = useDeletePhotoMutation();
+  const { current: currentLevel, next: nextLevel, progressPercent: levelProgress } =
+    useUserLevel(user.points);
+  const userPhotos = allPhotos.filter((p) => p.username === user.username);
   const totalLikes = userPhotos.reduce((sum, photo) => sum + photo.likes, 0);
+  const { data: bookmarkIds = [] } = useMyBookmarksQuery();
+  const savedPhotos = allPhotos.filter((p) => bookmarkIds.includes(p.id));
+
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
+  const selectedPhoto = selectedPhotoId
+    ? userPhotos.find((p) => p.id === selectedPhotoId) ?? null
+    : null;
+
+  const handleConfirmDelete = () => {
+    if (!pendingDeleteId || deleteMutation.isPending) return;
+    deleteMutation.mutate(pendingDeleteId, {
+      onSuccess: () => {
+        toast.success('Photo deleted');
+        setPendingDeleteId(null);
+      },
+      onError: () => {
+        toast.error('Could not delete photo. Please try again.');
+        setPendingDeleteId(null);
+      },
+    });
+  };
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editedUsername, setEditedUsername] = useState(user.username);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [activeView, setActiveView] = useState<'photos' | 'achievements'>('photos');
+  const updateProfileMutation = useUpdateProfileMutation();
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileImagePreview(reader.result as string);
@@ -44,10 +82,39 @@ export function Profile() {
   };
 
   const handleSaveProfile = () => {
-    // In a real app, this would update the user profile in the backend
-    // For now, we'll just close the dialog
-    setIsEditDialogOpen(false);
-    // Note: In a real implementation, you'd update user here
+    if (updateProfileMutation.isPending) return;
+
+    const trimmed = editedUsername.trim();
+    if (trimmed.length === 0) {
+      toast.error('Username cannot be empty');
+      return;
+    }
+
+    const usernameChanged = trimmed !== user.username;
+    if (!usernameChanged && !avatarFile) {
+      setIsEditDialogOpen(false);
+      return;
+    }
+
+    updateProfileMutation.mutate(
+      {
+        username: usernameChanged ? trimmed : undefined,
+        avatarFile: avatarFile ?? undefined,
+      },
+      {
+        onSuccess: (updated) => {
+          setUser(updated);
+          setEditedUsername(updated.username);
+          setProfileImagePreview(null);
+          setAvatarFile(null);
+          setIsEditDialogOpen(false);
+          toast.success('Profile updated');
+        },
+        onError: () => {
+          toast.error('Could not update profile. Please try again.');
+        },
+      },
+    );
   };
 
   const handleGoogleLogin = () => {
@@ -173,12 +240,26 @@ export function Profile() {
         <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
-                {user.username[0].toUpperCase()}
+              <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.username}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  user.username[0].toUpperCase()
+                )}
               </div>
               <div>
                 <h2 className="text-2xl font-bold">{user.username}</h2>
-                <p className="text-gray-600">Level {user.level} Explorer</p>
+                <p className="text-gray-600">
+                  Lv {currentLevel.level} ·{' '}
+                  <span style={{ color: currentLevel.color }} className="font-semibold">
+                    {currentLevel.name}
+                  </span>
+                </p>
               </div>
             </div>
             <button
@@ -193,9 +274,13 @@ export function Profile() {
           {/* Level Progress */}
           <div className="space-y-2 mb-6">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Progress to Level {user.level + 1}</span>
+              <span className="text-gray-600">
+                {nextLevel ? `Progress to ${nextLevel.name}` : 'Max level reached'}
+              </span>
               <span className="font-medium">
-                {user.points}/{user.nextLevelPoints}
+                {nextLevel
+                  ? `${user.points}/${nextLevel.minPoints}`
+                  : `${user.points} pts`}
               </span>
             </div>
             <Progress value={levelProgress} className="h-3" />
@@ -215,7 +300,7 @@ export function Profile() {
               >
                 <Camera className="w-6 h-6 text-blue-600" />
               </div>
-              <p className="text-2xl font-bold">{user.photosUploaded}</p>
+              <p className="text-2xl font-bold">{userPhotos.length}</p>
               <p className="text-xs text-gray-600">Photos</p>
             </button>
             <button
@@ -321,6 +406,9 @@ export function Profile() {
               <TabsTrigger value="photos" className="flex-1">
                 My Photos
               </TabsTrigger>
+              <TabsTrigger value="saved" className="flex-1">
+                Saved
+              </TabsTrigger>
               <TabsTrigger value="locations" className="flex-1">
                 Locations
               </TabsTrigger>
@@ -330,13 +418,40 @@ export function Profile() {
               {userPhotos.length > 0 ? (
                 <div className="grid grid-cols-2 gap-4">
                   {userPhotos.map((photo) => (
-                    <PhotoCard key={photo.id} photo={photo} />
+                    <PhotoCard
+                      key={photo.id}
+                      photo={photo}
+                      onClick={() => setSelectedPhotoId(photo.id)}
+                      onDelete={() => setPendingDeleteId(photo.id)}
+                    />
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-12 bg-white rounded-lg">
                   <Camera className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-600">No photos yet</p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="saved">
+              {savedPhotos.length > 0 ? (
+                <div className="grid grid-cols-2 gap-4">
+                  {savedPhotos.map((photo) => (
+                    <PhotoCard
+                      key={photo.id}
+                      photo={photo}
+                      onClick={() => setSelectedPhotoId(photo.id)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-white rounded-lg">
+                  <Star className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-600">No saved photos yet</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Tap the star on any photo to save it here
+                  </p>
                 </div>
               )}
             </TabsContent>
@@ -367,7 +482,13 @@ export function Profile() {
       </div>
 
       {/* Edit Profile Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          if (!open && updateProfileMutation.isPending) return;
+          setIsEditDialogOpen(open);
+        }}
+      >
         <DialogContent className="bg-[#F5F1ED] border-none sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-2xl font-semibold text-[#2D2520]">
@@ -381,12 +502,19 @@ export function Profile() {
                 Profile Image
               </Label>
               <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                <div className="w-20 h-20 aspect-square shrink-0 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 grid place-items-center text-white text-2xl font-bold overflow-hidden">
                   {profileImagePreview ? (
                     <img
                       src={profileImagePreview}
                       alt="Profile"
-                      className="w-full h-full object-cover"
+                      className="block w-full h-full object-cover"
+                    />
+                  ) : user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.username}
+                      referrerPolicy="no-referrer"
+                      className="block w-full h-full object-cover"
                     />
                   ) : (
                     user.username[0].toUpperCase()
@@ -433,15 +561,17 @@ export function Profile() {
               <Button
                 variant="outline"
                 onClick={() => setIsEditDialogOpen(false)}
+                disabled={updateProfileMutation.isPending}
                 className="flex-1 border-gray-300 hover:bg-gray-100"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSaveProfile}
+                disabled={updateProfileMutation.isPending}
                 className="flex-1 bg-[#2D2520] hover:bg-[#3D3530] text-white"
               >
-                Save Changes
+                {updateProfileMutation.isPending ? 'Saving…' : 'Save Changes'}
               </Button>
             </div>
 
@@ -464,6 +594,50 @@ export function Profile() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={pendingDeleteId !== null}
+        onOpenChange={(open) => {
+          if (!open && !deleteMutation.isPending) setPendingDeleteId(null);
+        }}
+      >
+        <DialogContent className="bg-white border-none sm:max-w-sm">
+          <DialogHeader>
+            <div className="mx-auto w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-2">
+              <Trash2 className="w-6 h-6 text-red-600" />
+            </div>
+            <DialogTitle className="text-center text-xl font-semibold text-[#2D2520]">
+              Delete this photo?
+            </DialogTitle>
+            <DialogDescription className="text-center text-gray-600">
+              This action can't be undone. The photo and any points it earned will be removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-2 flex-row gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setPendingDeleteId(null)}
+              disabled={deleteMutation.isPending}
+              className="flex-1 border-gray-300 hover:bg-gray-100"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending}
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Photo Detail Modal — same component the Gallery uses */}
+      {selectedPhoto && (
+        <PhotoDetail photo={selectedPhoto} onClose={() => setSelectedPhotoId(null)} />
+      )}
     </div>
   );
 }

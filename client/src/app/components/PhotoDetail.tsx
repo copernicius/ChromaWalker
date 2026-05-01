@@ -1,6 +1,9 @@
 import { Heart, MessageCircle, Share2, X } from 'lucide-react';
 import { useState } from 'react';
-import { RAINBOW_COLORS } from '../data';
+import { getPaletteColor } from '../data';
+import { useCommentsQuery, useMyLikesQuery, useToggleLikeMutation } from '../queries';
+import { CommentThread } from './CommentThread';
+import { PhotoShareDialog } from './PhotoShareDialog';
 
 interface Photo {
   id: string;
@@ -13,14 +16,8 @@ interface Photo {
   favorites: number;
   timestamp: Date;
   caption?: string;
-  colorPalette?: string[];
+  avatarUrl?: string;
   userRole?: string;
-  commentsList?: Array<{
-    id: string;
-    username: string;
-    text: string;
-    avatar?: string;
-  }>;
 }
 
 interface PhotoDetailProps {
@@ -29,47 +26,22 @@ interface PhotoDetailProps {
 }
 
 export function PhotoDetail({ photo, onClose }: PhotoDetailProps) {
-  const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(photo.likes);
+  const { data: myLikes } = useMyLikesQuery();
+  const toggleLike = useToggleLikeMutation();
+  const isLiked = myLikes?.includes(photo.id) ?? false;
+  const { data: comments = [], isLoading: commentsLoading } = useCommentsQuery(photo.id);
+  const [shareOpen, setShareOpen] = useState(false);
 
-  const color = RAINBOW_COLORS.find((c) => c.id === photo.color);
+  const color = getPaletteColor(photo.color);
 
   const handleLike = () => {
-    if (isLiked) {
-      setLikeCount(likeCount - 1);
-    } else {
-      setLikeCount(likeCount + 1);
-    }
-    setIsLiked(!isLiked);
+    if (toggleLike.isPending) return;
+    toggleLike.mutate({ id: photo.id, like: !isLiked });
   };
-
-  // Default color palette if not provided
-  const colorPalette = photo.colorPalette || [
-    color?.hex || '#4DB6AC',
-    '#45A5A0',
-    '#3D9B96',
-    '#36908C',
-  ];
-
-  // Default comments if not provided
-  const comments = photo.commentsList || [
-    {
-      id: '1',
-      username: 'Alex Johnson',
-      text: 'Amazing color composition! 🎨',
-      avatar: 'https://i.pravatar.cc/150?img=1',
-    },
-    {
-      id: '2',
-      username: 'Taylor Brown',
-      text: 'Love the palette! So inspiring ✨',
-      avatar: 'https://i.pravatar.cc/150?img=2',
-    },
-  ];
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-fade-in"
       onClick={onClose}
       onKeyDown={(e) => {
         if (e.key === 'Escape') onClose();
@@ -95,8 +67,17 @@ export function PhotoDetail({ photo, onClose }: PhotoDetailProps) {
           <div className="p-6 border-b border-gray-200 bg-white">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FF8A65] to-[#9575CD] flex items-center justify-center text-white font-bold text-lg">
-                  {photo.username.charAt(0)}
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-[#FF8A65] to-[#9575CD] flex items-center justify-center text-white font-bold text-lg">
+                  {photo.avatarUrl ? (
+                    <img
+                      src={photo.avatarUrl}
+                      alt={photo.username}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    photo.username.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div>
                   <p className="font-bold text-[#2D2520]">{photo.username}</p>
@@ -129,24 +110,6 @@ export function PhotoDetail({ photo, onClose }: PhotoDetailProps) {
             </p>
           </div>
 
-          {/* Color Palette */}
-          <div className="p-6 border-b border-gray-200 bg-white">
-            <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
-              Color Palette
-            </h3>
-            <div className="grid grid-cols-4 gap-2">
-              {colorPalette.map((hex) => (
-                <div key={hex} className="space-y-2">
-                  <div
-                    className="aspect-square rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer transform hover:scale-105"
-                    style={{ backgroundColor: hex }}
-                  />
-                  <p className="text-xs text-center text-gray-600 font-mono">{hex.toUpperCase()}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Actions */}
           <div className="p-6 border-b border-gray-200 bg-white flex items-center gap-6">
             <button
@@ -157,17 +120,19 @@ export function PhotoDetail({ photo, onClose }: PhotoDetailProps) {
               }`}
             >
               <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
-              <span className="font-semibold">{likeCount}</span>
+              <span className="font-semibold">{photo.likes}</span>
             </button>
             <button
               type="button"
               className="flex items-center gap-2 text-gray-600 transition-all transform hover:scale-110"
             >
               <MessageCircle className="w-6 h-6" />
-              <span className="font-semibold">{comments.length}</span>
+              <span className="font-semibold">{photo.comments}</span>
             </button>
             <button
               type="button"
+              onClick={() => setShareOpen(true)}
+              aria-label="Share photo"
               className="flex items-center gap-2 text-gray-600 transition-all transform hover:scale-110 ml-auto"
             >
               <Share2 className="w-6 h-6" />
@@ -179,37 +144,16 @@ export function PhotoDetail({ photo, onClose }: PhotoDetailProps) {
             <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4">
               Comments
             </h3>
-            <div className="space-y-4">
-              {comments.map((comment) => (
-                <div key={comment.id} className="flex gap-3 animate-slide-up">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#4DB6AC] to-[#8BA888] flex items-center justify-center text-white font-bold flex-shrink-0">
-                    {comment.username.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm text-[#2D2520] mb-1">{comment.username}</p>
-                    <p className="text-sm text-gray-700 leading-relaxed">{comment.text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Add Comment Input */}
-            <div className="mt-6 flex gap-3">
-              <input
-                type="text"
-                placeholder="Add a comment..."
-                className="flex-1 px-4 py-3 bg-white rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2D2520]/20 transition-all text-sm"
-              />
-              <button
-                type="button"
-                className="px-6 py-3 bg-[#2D2520] text-white rounded-2xl font-semibold hover:bg-[#3D3530] transition-all transform hover:scale-105 active:scale-95"
-              >
-                Post
-              </button>
-            </div>
+            <CommentThread
+              photoId={photo.id}
+              comments={comments}
+              isLoading={commentsLoading}
+            />
           </div>
         </div>
       </div>
+
+      <PhotoShareDialog open={shareOpen} onOpenChange={setShareOpen} photo={photo} />
     </div>
   );
 }

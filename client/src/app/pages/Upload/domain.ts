@@ -1,4 +1,4 @@
-import { type Mission, RAINBOW_COLORS } from '../../data';
+import { getPaletteColor, type Mission, RAINBOW_COLORS } from '../../data';
 
 export type ColorId = string;
 export type TaskType = 'daily' | 'solo' | 'team' | null;
@@ -12,6 +12,10 @@ export function getDailyColor() {
 export function getColor(id: ColorId | null | undefined) {
   if (!id) return null;
   return RAINBOW_COLORS.find((c) => c.id === id) ?? null;
+}
+
+export function getDetectedColor(id: ColorId | null | undefined) {
+  return getPaletteColor(id) ?? getColor(id);
 }
 
 export function getRequiredColor(

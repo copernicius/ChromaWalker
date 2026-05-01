@@ -1,13 +1,15 @@
 import { Locate, MapPin, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { Header } from '../components';
-import { MOCK_PHOTOS, RAINBOW_COLORS } from '../data';
+import { type Photo, RAINBOW_COLORS } from '../data';
+import { usePhotosQuery } from '../queries';
 
 export function MapExplore() {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const { data: photos = [] } = usePhotosQuery();
 
   // Group photos by location
-  const photoLocations = MOCK_PHOTOS.reduce(
+  const photoLocations = photos.reduce(
     (acc, photo) => {
       const key = `${photo.lat},${photo.lng}`;
       if (!acc[key]) {
@@ -16,10 +18,10 @@ export function MapExplore() {
       acc[key].push(photo);
       return acc;
     },
-    {} as Record<string, typeof MOCK_PHOTOS>,
+    {} as Record<string, Photo[]>,
   );
 
-  const selectedPhotoData = selectedPhoto ? MOCK_PHOTOS.find((p) => p.id === selectedPhoto) : null;
+  const selectedPhotoData = selectedPhoto ? photos.find((p) => p.id === selectedPhoto) : null;
 
   return (
     <div className="min-h-screen bg-[#F5F1ED] pb-24">

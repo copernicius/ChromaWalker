@@ -1,17 +1,23 @@
-import { Clock, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
-import { useParams } from 'react-router';
-import { Header, PhotoCard, PhotoDetail } from '../components';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui';
-import { MOCK_PHOTOS, RAINBOW_COLORS, RARE_COLORS } from '../data';
+import { Clock, TrendingUp } from "lucide-react";
+import { useState } from "react";
+import { useParams } from "react-router";
+import { Header, PhotoCard, PhotoDetail } from "../components";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui";
+import { RAINBOW_COLORS, RARE_COLORS } from "../data";
+import { usePhotosQuery } from "../queries";
 
 export function ColorGallery() {
   const { colorId } = useParams();
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const color = [...RAINBOW_COLORS, ...RARE_COLORS].find((c) => c.id === colorId);
-  const photos = MOCK_PHOTOS.filter((p) => p.color === colorId);
+  const { data: allPhotos = [] } = usePhotosQuery();
+  const color = [...RAINBOW_COLORS, ...RARE_COLORS].find(
+    (c) => c.id === colorId,
+  );
+  const photos = allPhotos.filter((p) => p.color === colorId);
 
-  const selectedPhotoData = selectedPhoto ? MOCK_PHOTOS.find((p) => p.id === selectedPhoto) : null;
+  const selectedPhotoData = selectedPhoto
+    ? allPhotos.find((p) => p.id === selectedPhoto)
+    : null;
 
   if (!color) {
     return (
@@ -30,7 +36,9 @@ export function ColorGallery() {
     return scoreB - scoreA;
   });
 
-  const sortedByRecent = [...photos].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  const sortedByRecent = [...photos].sort(
+    (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
+  );
 
   return (
     <div className="min-h-screen bg-[#F5F1ED] pb-24">
@@ -40,14 +48,20 @@ export function ColorGallery() {
         {/* Color Header */}
         <div
           className="rounded-3xl p-8 mb-6 text-white shadow-md relative overflow-hidden"
-          style={{ background: `linear-gradient(135deg, ${color.hex} 0%, ${color.hex}dd 100%)` }}
+          style={{
+            background: `linear-gradient(135deg, ${color.hex} 0%, ${color.hex}dd 100%)`,
+          }}
         >
           <div className="relative z-10">
             <div className="mb-2">
-              <span className="text-xs uppercase tracking-wide opacity-90">{color.category}</span>
+              <span className="text-xs uppercase tracking-wide opacity-90">
+                {color.category}
+              </span>
             </div>
             <h1 className="text-4xl font-bold mb-2">{color.name}</h1>
-            <p className="text-lg opacity-90">{photos.length} photos captured</p>
+            <p className="text-lg opacity-90">
+              {photos.length} photos captured
+            </p>
           </div>
           <div
             className="absolute -bottom-8 -right-8 w-32 h-32 rounded-full opacity-20"
@@ -79,14 +93,18 @@ export function ColorGallery() {
               <div className="grid grid-cols-2 gap-4">
                 {sortedByPopular.map((photo) => (
                   <div key={photo.id}>
-                    <PhotoCard photo={photo} onClick={() => setSelectedPhoto(photo.id)} />
+                    <PhotoCard
+                      photo={photo}
+                      onClick={() => setSelectedPhoto(photo.id)}
+                    />
                   </div>
                 ))}
               </div>
             ) : (
               <div className="text-center py-16 bg-white rounded-2xl">
                 <p className="text-gray-600">
-                  No photos yet. Be the first to capture {color.name.toLowerCase()}!
+                  No photos yet. Be the first to capture{" "}
+                  {color.name.toLowerCase()}!
                 </p>
               </div>
             )}
@@ -97,14 +115,18 @@ export function ColorGallery() {
               <div className="grid grid-cols-2 gap-4">
                 {sortedByRecent.map((photo) => (
                   <div key={photo.id}>
-                    <PhotoCard photo={photo} onClick={() => setSelectedPhoto(photo.id)} />
+                    <PhotoCard
+                      photo={photo}
+                      onClick={() => setSelectedPhoto(photo.id)}
+                    />
                   </div>
                 ))}
               </div>
             ) : (
               <div className="text-center py-16 bg-white rounded-2xl">
                 <p className="text-gray-600">
-                  No photos yet. Be the first to capture {color.name.toLowerCase()}!
+                  No photos yet. Be the first to capture{" "}
+                  {color.name.toLowerCase()}!
                 </p>
               </div>
             )}
@@ -114,7 +136,10 @@ export function ColorGallery() {
 
       {/* Photo Detail Modal */}
       {selectedPhotoData && (
-        <PhotoDetail photo={selectedPhotoData} onClose={() => setSelectedPhoto(null)} />
+        <PhotoDetail
+          photo={selectedPhotoData}
+          onClose={() => setSelectedPhoto(null)}
+        />
       )}
     </div>
   );

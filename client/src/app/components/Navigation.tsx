@@ -1,6 +1,38 @@
 import { Home, Palette, Plus, Target, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 
+// 7 hex stops in rainbow order — burst particles only, not tied to the full
+// PALETTE. Angles distribute the particles evenly around the origin.
+const BURST_PARTICLES = [
+  { hex: '#FF0000', angle: -90 },
+  { hex: '#FF7F00', angle: -38.6 },
+  { hex: '#FFFF00', angle: 12.9 },
+  { hex: '#00FF00', angle: 64.3 },
+  { hex: '#0000FF', angle: 115.7 },
+  { hex: '#4B0082', angle: 167.1 },
+  { hex: '#9400D3', angle: -141.4 },
+];
+
+// Fire-and-forget DOM injection — outlives the Navigation unmount that
+// happens when the click navigates to /upload (Root.tsx hides Navigation
+// there). No React state, no portals, just a self-cleaning <div> on body.
+function triggerRainbowBurst(centerX: number, centerY: number) {
+  const radius = 80;
+  const container = document.createElement('div');
+  container.style.cssText = `position:fixed;left:${centerX}px;top:${centerY}px;pointer-events:none;z-index:60;`;
+  for (const { hex, angle } of BURST_PARTICLES) {
+    const rad = (angle * Math.PI) / 180;
+    const tx = Math.cos(rad) * radius;
+    const ty = Math.sin(rad) * radius;
+    const dot = document.createElement('div');
+    dot.className = 'animate-confetti-burst';
+    dot.style.cssText = `position:absolute;width:12px;height:12px;border-radius:9999px;left:-6px;top:-6px;background:${hex};box-shadow:0 0 12px ${hex}aa;--tx:${tx}px;--ty:${ty}px;`;
+    container.appendChild(dot);
+  }
+  document.body.appendChild(container);
+  window.setTimeout(() => container.remove(), 700);
+}
+
 export function Navigation() {
   const location = useLocation();
 
@@ -25,6 +57,15 @@ export function Navigation() {
                 <Link
                   key={path}
                   to={path}
+                  onClick={(e) => {
+                    const rect = (
+                      e.currentTarget as HTMLElement
+                    ).getBoundingClientRect();
+                    triggerRainbowBurst(
+                      rect.left + rect.width / 2,
+                      rect.top + rect.height / 2,
+                    );
+                  }}
                   className="flex flex-col items-center justify-center -mt-6"
                 >
                   <div className="bg-gradient-to-br from-[#FF8A65] to-[#9575CD] text-white rounded-full p-4 shadow-xl hover:shadow-2xl transition-all hover:scale-110 active:scale-95 ring-4 ring-white">

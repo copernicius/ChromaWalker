@@ -3,7 +3,8 @@ import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { Navigation } from './components';
 import type { UserProfile } from './data';
-import { apiFetch } from './lib';
+import { apiCall } from './lib';
+import { useLevelsQuery } from './queries';
 import { useAppStore } from './store';
 
 export function Root() {
@@ -11,13 +12,15 @@ export function Root() {
   const token = useAppStore((s) => s.token);
   const login = useAppStore((s) => s.login);
 
+  // Boot-time fetches. Levels is config that everything (Home/Profile)
+  // reads — kicking it off here means the cache is warm before any page
+  // mounts. The hook returns the static fallback synchronously, so this
+  // doesn't block render.
+  useLevelsQuery();
+
   const meQuery = useQuery({
     queryKey: ['auth', 'me'],
-    queryFn: async () => {
-      const res = await apiFetch('/api/auth/me');
-      if (!res.ok) throw new Error('Failed to fetch user');
-      return (await res.json()) as UserProfile;
-    },
+    queryFn: () => apiCall<UserProfile>('/api/auth/me'),
     enabled: !!token,
     retry: false,
     staleTime: 5 * 60 * 1000,

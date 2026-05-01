@@ -6,6 +6,7 @@ import {
   type ColorId,
   getColor,
   getDailyColor,
+  getDetectedColor,
   getRequiredColor,
   type TaskType,
 } from './domain';
@@ -21,6 +22,11 @@ interface UploadState {
   taskType: TaskType;
   missionId: string | null;
   location: string;
+  // Coordinates from LocationPicker. Optional because the user might
+  // type a location string without picking on the map.
+  lat: number | null;
+  lng: number | null;
+  caption: string;
   missionDialogPendingType: 'solo' | 'team' | null;
 }
 
@@ -33,7 +39,8 @@ type Action =
   | { type: 'OPEN_MISSION_DIALOG'; pendingTaskType: 'solo' | 'team' }
   | { type: 'CLOSE_MISSION_DIALOG' }
   | { type: 'SELECT_MISSION'; missionId: string }
-  | { type: 'SET_LOCATION'; value: string }
+  | { type: 'SET_LOCATION'; value: string; lat: number | null; lng: number | null }
+  | { type: 'SET_CAPTION'; value: string }
   | { type: 'UPLOAD_SUCCESS'; pointsEarned: number };
 
 const initial: UploadState = {
@@ -41,6 +48,9 @@ const initial: UploadState = {
   taskType: null,
   missionId: null,
   location: '',
+  lat: null,
+  lng: null,
+  caption: '',
   missionDialogPendingType: null,
 };
 
@@ -73,7 +83,9 @@ function reducer(state: UploadState, action: Action): UploadState {
         missionDialogPendingType: null,
       };
     case 'SET_LOCATION':
-      return { ...state, location: action.value };
+      return { ...state, location: action.value, lat: action.lat, lng: action.lng };
+    case 'SET_CAPTION':
+      return { ...state, caption: action.value };
     case 'UPLOAD_SUCCESS':
       return { ...state, step: { kind: 'uploaded', pointsEarned: action.pointsEarned } };
   }
@@ -92,7 +104,7 @@ export function useUploadFlow() {
   const requiredColor = getColor(requiredColorId);
 
   const detected = state.step.kind === 'color-tested' ? state.step.detected : null;
-  const detectedColor = getColor(detected);
+  const detectedColor = getDetectedColor(detected);
   const colorPassed = detected !== null && colorMatches(detected, requiredColorId);
   const pointsEarned = calculatePoints(state.taskType, mission);
 
@@ -122,7 +134,9 @@ export function useUploadFlow() {
         dispatch({ type: 'OPEN_MISSION_DIALOG', pendingTaskType }),
       closeMissionDialog: () => dispatch({ type: 'CLOSE_MISSION_DIALOG' }),
       selectMission: (missionId: string) => dispatch({ type: 'SELECT_MISSION', missionId }),
-      setLocation: (value: string) => dispatch({ type: 'SET_LOCATION', value }),
+      setLocation: (value: string, lat: number | null = null, lng: number | null = null) =>
+        dispatch({ type: 'SET_LOCATION', value, lat, lng }),
+      setCaption: (value: string) => dispatch({ type: 'SET_CAPTION', value }),
       uploadSuccess: (pointsEarned: number) =>
         dispatch({ type: 'UPLOAD_SUCCESS', pointsEarned }),
     },

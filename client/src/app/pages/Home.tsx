@@ -1,18 +1,17 @@
-import { Camera, Sparkles, TrendingUp, Trophy, Zap } from 'lucide-react';
+import { Sparkles, Zap } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { PhotoCard, PhotoDetail } from '../components';
 import { Progress } from '../components/ui';
 import { RAINBOW_COLORS } from '../data';
-import { usePhotosQuery } from '../queries';
+import { usePhotosQuery, useUserLevel } from '../queries';
 import { useAppStore } from '../store';
 
 export function Home() {
   const { user } = useAppStore();
   const { data: photos, isLoading, isError } = usePhotosQuery();
+  const { current, next, pointsForNextLevel, progressPercent } = useUserLevel(user.points);
 
-  const nextLevel = (user.level + 1) * 1000;
-  const progressPercent = (user.points / nextLevel) * 100;
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   const selectedPhotoData = selectedPhoto ? photos?.find((p) => p.id === selectedPhoto) : null;
@@ -39,9 +38,20 @@ export function Home() {
             </div>
             <Link
               to="/profile"
-              className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FF8A65] to-[#9575CD] flex items-center justify-center text-white font-semibold shadow-md hover:scale-110 transition-transform active:scale-95"
+              className="w-12 h-12 rounded-full overflow-hidden shadow-md hover:scale-110 transition-transform active:scale-95"
             >
-              {user.username[0].toUpperCase()}
+              {user.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.username}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[#FF8A65] to-[#9575CD] flex items-center justify-center text-white font-semibold">
+                  {user.username[0].toUpperCase()}
+                </div>
+              )}
             </Link>
           </div>
           <p className="text-gray-600">Explore colors around you</p>
@@ -55,8 +65,13 @@ export function Home() {
               <p className="text-2xl font-semibold">{user.username}</p>
             </div>
             <div className="text-right">
-              <div className="bg-[#2D2520] text-white px-4 py-2 rounded-full animate-pulse">
-                <p className="text-xs">Level {user.level}</p>
+              <div
+                className="text-white px-4 py-2 rounded-full animate-pulse"
+                style={{ backgroundColor: current.color }}
+              >
+                <p className="text-xs">
+                  Lv {current.level} · {current.name}
+                </p>
               </div>
             </div>
           </div>
@@ -65,47 +80,13 @@ export function Home() {
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#FFD54F] animate-pulse" />
-                Progress to Level {user.level + 1}
+                {next ? `Progress to ${next.name}` : 'Max level reached'}
               </span>
               <span className="font-semibold text-[#2D2520]">
-                {user.points}/{nextLevel}
+                {next ? `${user.points}/${current.minPoints + pointsForNextLevel}` : `${user.points} pts`}
               </span>
             </div>
             <Progress value={progressPercent} className="h-2.5 bg-[#E8DFD8]" />
-          </div>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div
-            className="bg-white rounded-2xl p-5 shadow-sm text-center animate-slide-up hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer"
-            style={{ animationDelay: '0.1s' }}
-          >
-            <div className="w-10 h-10 bg-[#FF8A65]/10 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transition-transform">
-              <Camera className="w-5 h-5 text-[#FF8A65]" />
-            </div>
-            <p className="text-2xl font-bold text-[#2D2520]">{user.photosUploaded}</p>
-            <p className="text-xs text-gray-600 mt-1">Photos</p>
-          </div>
-          <div
-            className="bg-white rounded-2xl p-5 shadow-sm text-center animate-slide-up hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer"
-            style={{ animationDelay: '0.15s' }}
-          >
-            <div className="w-10 h-10 bg-[#FFD54F]/20 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transition-transform">
-              <Trophy className="w-5 h-5 text-[#F4C430]" />
-            </div>
-            <p className="text-2xl font-bold text-[#2D2520]">{user.missionsCompleted}</p>
-            <p className="text-xs text-gray-600 mt-1">Missions</p>
-          </div>
-          <div
-            className="bg-white rounded-2xl p-5 shadow-sm text-center animate-slide-up hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer"
-            style={{ animationDelay: '0.2s' }}
-          >
-            <div className="w-10 h-10 bg-[#8BA888]/10 rounded-full flex items-center justify-center mx-auto mb-3 hover:scale-110 transition-transform">
-              <TrendingUp className="w-5 h-5 text-[#8BA888]" />
-            </div>
-            <p className="text-2xl font-bold text-[#2D2520]">{RAINBOW_COLORS.length}</p>
-            <p className="text-xs text-gray-600 mt-1">Colors</p>
           </div>
         </div>
 

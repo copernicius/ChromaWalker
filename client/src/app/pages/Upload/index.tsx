@@ -66,9 +66,13 @@ export function Upload() {
       {
         image: image ?? '',
         location: state.location,
+        lat: state.lat ?? undefined,
+        lng: state.lng ?? undefined,
         color: detected ?? '',
         taskType: state.taskType,
         missionId: state.missionId ?? undefined,
+        caption: state.caption.trim(),
+        pointsAwarded: pointsEarned,
       },
       {
         onSuccess: () => {
@@ -145,7 +149,34 @@ export function Upload() {
 
           {image && (
             <div className="animate-fade-in space-y-6">
-              <LocationPicker location={state.location} onLocationChange={actions.setLocation} />
+              <div>
+                <label
+                  htmlFor="caption"
+                  className="block text-sm font-semibold mb-2 text-[#2D2520]"
+                >
+                  Caption{' '}
+                  <span className="text-xs font-normal text-gray-500">(optional)</span>
+                </label>
+                <textarea
+                  id="caption"
+                  value={state.caption}
+                  onChange={(e) => actions.setCaption(e.target.value)}
+                  rows={2}
+                  maxLength={500}
+                  placeholder="Tell the story behind this photo…"
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-[#2D2520] placeholder-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4DB6AC] focus:border-transparent resize-none"
+                />
+                <p className="text-xs text-gray-500 text-right mt-1">
+                  {state.caption.length}/500
+                </p>
+              </div>
+
+              <LocationPicker
+                location={state.location}
+                onLocationChange={(loc, coords) =>
+                  actions.setLocation(loc, coords?.lat ?? null, coords?.lng ?? null)
+                }
+              />
 
               <Button
                 onClick={handleSubmit}

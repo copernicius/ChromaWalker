@@ -26,7 +26,7 @@ export function TaskTypeSelector({
   onClearTask,
 }: Props) {
   return (
-    <div className="mb-6 animate-slide-up">
+    <div className="mt-6 mb-6 animate-slide-up">
       <div className="flex items-center justify-between mb-3">
         <span className="block text-sm font-semibold text-[#2D2520]">
           {taskType ? 'Selected Task' : 'What is this photo for?'}

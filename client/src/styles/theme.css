@@ -221,6 +221,70 @@
     }
   }
 
+  @keyframes confetti-burst {
+    0% {
+      transform: translate(0, 0) scale(0.4);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(var(--tx), var(--ty)) scale(1.4);
+      opacity: 0;
+    }
+  }
+
+  /* Walking-figure bob: subtle vertical bounce to suggest steps. */
+  @keyframes walk-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
+  }
+
+  /* Treadmill-style drift: clouds scroll across the scene while the figure
+     stays centered. Use with `inset-y-0` and a long duration. */
+  @keyframes cloud-drift {
+    from {
+      transform: translateX(110%);
+    }
+    to {
+      transform: translateX(-110%);
+    }
+  }
+
+  /* Subtle horizontal swing for the legs so the silhouette reads as walking. */
+  @keyframes leg-step-a {
+    0%,
+    100% {
+      transform: rotate(-15deg);
+    }
+    50% {
+      transform: rotate(15deg);
+    }
+  }
+  @keyframes leg-step-b {
+    0%,
+    100% {
+      transform: rotate(15deg);
+    }
+    50% {
+      transform: rotate(-15deg);
+    }
+  }
+
+  /* Sea shimmer: subtle horizontal nudge on the rainbow stripes. */
+  @keyframes sea-shimmer {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(-6px);
+    }
+  }
+
   .animate-bounce-slow {
     animation: bounce-slow 3s ease-in-out infinite;
   }
@@ -235,6 +299,32 @@
 
   .animate-scale-in {
     animation: scale-in 0.3s ease-out;
+  }
+
+  .animate-confetti-burst {
+    animation: confetti-burst 600ms ease-out forwards;
+  }
+
+  .animate-walk-bob {
+    animation: walk-bob 480ms ease-in-out infinite;
+  }
+
+  .animate-cloud-drift {
+    animation: cloud-drift 28s linear infinite;
+  }
+
+  .animate-leg-a {
+    animation: leg-step-a 480ms ease-in-out infinite;
+    transform-origin: top center;
+  }
+
+  .animate-leg-b {
+    animation: leg-step-b 480ms ease-in-out infinite;
+    transform-origin: top center;
+  }
+
+  .animate-sea-shimmer {
+    animation: sea-shimmer 2.5s ease-in-out infinite;
   }
 
   .scrollbar-hide {

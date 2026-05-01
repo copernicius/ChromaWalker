@@ -72,95 +72,79 @@ export function ColorTestPanel({
 
   return (
     <div
-      className={`w-full rounded-3xl overflow-hidden shadow-lg transition-all animate-scale-in ${
+      className={`w-full rounded-2xl overflow-hidden shadow-sm transition-all animate-scale-in ${
         colorPassed
-          ? 'bg-white ring-2 ring-green-400 ring-offset-2'
-          : 'bg-white ring-2 ring-red-400 ring-offset-2'
+          ? 'bg-white ring-1 ring-green-400'
+          : 'bg-white ring-1 ring-red-400'
       }`}
     >
       {/* Color Display Header */}
       <div
-        className="p-6 relative overflow-hidden"
+        className="px-4 py-3 relative overflow-hidden"
         style={{
           background: `linear-gradient(135deg, ${detectedHex}dd 0%, ${detectedHex}99 100%)`,
         }}
       >
-        <div
-          className="absolute -top-4 -right-4 w-32 h-32 rounded-full opacity-20 animate-pulse"
-          style={{ backgroundColor: detectedHex }}
-        />
-        <div
-          className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full opacity-15 animate-pulse"
-          style={{ backgroundColor: detectedHex }}
-        />
-
-        <div className="relative z-10 flex items-center gap-4">
+        <div className="relative z-10 flex items-center gap-3">
           <div className="flex-shrink-0">
             {colorPassed ? (
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-xl animate-bounce">
-                <Check className="w-9 h-9 text-green-500" strokeWidth={3} />
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
+                <Check className="w-5 h-5 text-green-500" strokeWidth={3} />
               </div>
             ) : (
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-xl">
-                <span className="text-3xl font-bold text-red-500">✕</span>
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
+                <span className="text-lg font-bold text-red-500">✕</span>
               </div>
             )}
           </div>
-          <div className="flex-1">
-            <p className="text-white font-bold text-2xl mb-1.5 drop-shadow-sm">{detectedName}</p>
-            <p className="text-white/95 text-sm tracking-wide">Detected from your photo</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-semibold text-base leading-tight drop-shadow-sm truncate">
+              {detectedName}
+            </p>
+            <p className="text-white/90 text-xs">Detected from your photo</p>
           </div>
         </div>
       </div>
 
       {/* Result Message */}
-      <div className="p-6">
-        <div className="flex items-start gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              {colorPassed ? (
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              ) : (
-                <div className="w-2 h-2 bg-red-500 rounded-full" />
-              )}
-              <p
-                className={`font-bold text-lg ${colorPassed ? 'text-green-800' : 'text-red-800'}`}
-              >
-                {colorPassed
-                  ? hasTaskRequirement
-                    ? 'Perfect Match!'
-                    : 'Color Detected'
-                  : 'Color Mismatch'}
-              </p>
-              {colorPassed && hasTaskRequirement && <span className="text-xl">✨</span>}
-            </div>
-            <p
-              className={`text-sm leading-relaxed ${colorPassed ? 'text-green-700' : 'text-red-700'}`}
-            >
-              {colorPassed ? (
-                hasTaskRequirement ? (
-                  <>This color matches the required color for your task. You're ready to upload!</>
-                ) : (
-                  <>Your photo has been analyzed. You can now upload it with the detected color.</>
-                )
-              ) : (
-                <>
-                  This photo contains <strong>{detectedName}</strong>, but your task requires{' '}
-                  <strong>{requiredColor?.name ?? 'Any color'}</strong>. Please try again.
-                </>
-              )}
-            </p>
-            {!colorPassed && (
-              <button
-                type="button"
-                onClick={onRetry}
-                className="mt-4 text-sm text-red-700 font-semibold hover:text-red-900 underline decoration-2 underline-offset-2 transition-colors"
-              >
-                Take another photo →
-              </button>
-            )}
-          </div>
+      <div className="px-4 py-3">
+        <div className="flex items-center gap-2 mb-1">
+          <p
+            className={`font-semibold text-sm ${colorPassed ? 'text-green-800' : 'text-red-800'}`}
+          >
+            {colorPassed
+              ? hasTaskRequirement
+                ? 'Perfect Match!'
+                : 'Color Detected'
+              : 'Color Mismatch'}
+          </p>
+          {colorPassed && hasTaskRequirement && <span className="text-sm">✨</span>}
         </div>
+        <p
+          className={`text-xs leading-relaxed ${colorPassed ? 'text-green-700' : 'text-red-700'}`}
+        >
+          {colorPassed ? (
+            hasTaskRequirement ? (
+              <>This color matches the required color for your task.</>
+            ) : (
+              <>Your photo has been analyzed. You can upload it now.</>
+            )
+          ) : (
+            <>
+              This photo contains <strong>{detectedName}</strong>, but your task requires{' '}
+              <strong>{requiredColor?.name ?? 'Any color'}</strong>.
+            </>
+          )}
+        </p>
+        {!colorPassed && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-2 text-xs text-red-700 font-semibold hover:text-red-900 underline decoration-2 underline-offset-2 transition-colors"
+          >
+            Take another photo →
+          </button>
+        )}
       </div>
     </div>
   );

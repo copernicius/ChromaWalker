@@ -1,5 +1,12 @@
 export { Button, buttonVariants } from './button';
-export { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './dialog';
+export {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './dialog';
 export { Input } from './input';
 export { Label } from './label';
 export { Progress } from './progress';

@@ -2,6 +2,7 @@ export { Header } from './Header';
 export { Navigation } from './Navigation';
 export { PhotoCard } from './PhotoCard';
 export { PhotoDetail } from './PhotoDetail';
+export { PhotoMap } from './PhotoMap';
 export { MissionCard } from './MissionCard';
 export { CardStack } from './CardStack';
 export { LocationPicker } from './LocationPicker';
