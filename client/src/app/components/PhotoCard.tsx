@@ -11,9 +11,14 @@ interface PhotoCardProps {
   photo: Photo;
   onClick?: () => void;
   onDelete?: () => void;
+  // 'square' (default) crops to a uniform tile — used by Home's small grids.
+  // 'natural' lets each image keep its real ratio so a CSS-columns waterfall
+  // gets variable-height cards (the actual masonry effect).
+  aspect?: 'square' | 'natural';
 }
 
-export function PhotoCard({ photo, onClick, onDelete }: PhotoCardProps) {
+export function PhotoCard({ photo, onClick, onDelete, aspect = 'square' }: PhotoCardProps) {
+  const isNatural = aspect === 'natural';
   const { data: myLikes } = useMyLikesQuery();
   const toggleLike = useToggleLikeMutation();
   const liked = myLikes?.includes(photo.id) ?? false;
@@ -42,11 +47,19 @@ export function PhotoCard({ photo, onClick, onDelete }: PhotoCardProps) {
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.(); }}
     >
-      <div className="aspect-square relative">
+      <div
+        className={`relative bg-gray-100 ${isNatural ? '' : 'aspect-square'}`}
+      >
         <img
           src={photo.imageUrl}
           alt={`${photo.color} capture at ${photo.location}`}
-          className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
+          className={
+            isNatural
+              ? 'w-full h-auto block'
+              : 'w-full h-full object-cover'
+          }
         />
         {onDelete && (
           <button
@@ -73,6 +86,8 @@ export function PhotoCard({ photo, onClick, onDelete }: PhotoCardProps) {
                   src={photo.avatarUrl}
                   alt={photo.username}
                   referrerPolicy="no-referrer"
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -81,8 +96,15 @@ export function PhotoCard({ photo, onClick, onDelete }: PhotoCardProps) {
             </div>
             <span className="text-sm font-medium text-[#2D2520]">{photo.username}</span>
           </div>
-          <div className="text-xs text-gray-500 text-left truncate" title={photo.location}>
-            {photo.location}
+          {/* Reserve one line of vertical space even when location is empty
+              so cards stay the same height across the grid. */}
+          <div
+            className="text-xs text-gray-500 text-left truncate min-h-[1lh]"
+            title={photo.location}
+          >
+            {photo.location?.trim() || (
+              <span className="text-gray-400 italic">No location</span>
+            )}
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 import { Heart, Info, MessageCircle, Star, X } from 'lucide-react';
 import { AnimatePresence, type PanInfo, motion } from 'motion/react';
 import { useState } from 'react';
-import { type Photo, RAINBOW_COLORS } from '../data';
+import { getPaletteColor, type Photo } from '../data';
 
 interface CardStackProps {
   photos: Photo[];
@@ -47,7 +47,7 @@ export function CardStack({ photos }: CardStackProps) {
       <AnimatePresence>
         {visiblePhotos.map((photo, index) => {
           const actualIndex = (currentIndex + index) % photos.length;
-          const color = RAINBOW_COLORS.find((c) => c.id === photo.color);
+          const color = getPaletteColor(photo.color);
           const isTop = index === 0;
 
           return (
@@ -96,9 +96,9 @@ export function CardStack({ photos }: CardStackProps) {
                   {/* Color Tag */}
                   <div
                     className="absolute top-4 right-4 px-4 py-2 rounded-full text-white text-sm font-semibold shadow-lg backdrop-blur-sm"
-                    style={{ backgroundColor: `${color?.hex}dd` }}
+                    style={{ backgroundColor: color?.morandi }}
                   >
-                    {color?.name}
+                    {color?.fancyName ?? color?.name}
                   </div>
 
                   {/* Photo Info */}

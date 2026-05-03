@@ -1,0 +1,51 @@
+# Fly.io app config. Run from this directory (server/).
+#
+# First-time setup:
+#   fly launch --no-deploy        # claim the app name + region
+#   fly volumes create uploads --region syd --size 1
+#   fly secrets set MONGO_URI="mongodb+srv://user:pass@cluster.../chromawalk?appName=Cluster0"
+#   fly secrets set JWT_SECRET="$(openssl rand -hex 32)"
+#   fly secrets set GOOGLE_CLIENT_ID="..."   # if using Google sign-in
+#   fly deploy
+#
+# Subsequent deploys:
+#   fly deploy
+#
+# Choose `primary_region` close to your users. Common codes:
+#   syd (Sydney), sin (Singapore), lax (Los Angeles), iad (Virginia),
+#   fra (Frankfurt), nrt (Tokyo). Full list: fly platform regions
+
+app = "chromawalk-server"
+primary_region = "syd"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Pin PORT so server/src/index.ts (process.env.PORT || 3000) binds
+  # exactly where Fly's proxy expects.
+  PORT = "8080"
+  NODE_ENV = "production"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Scale-to-zero between bursts. Cold start is ~2s; bump
+  # min_machines_running to 1 if that's painful.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  # WebSockets (Socket.IO) work without extra config — Fly handles the
+  # HTTP/WS upgrade transparently. NOTE: if you ever scale beyond 1
+  # machine, in-memory rooms break — wire a Redis adapter at that point.
+
+# Persistent storage for uploaded photos. Without this, every deploy
+# wipes the tmp directory and prior uploads 404.
+[[mounts]]
+  source = "uploads"
+  destination = "/app/tmp"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256

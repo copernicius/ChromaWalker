@@ -1,17 +1,12 @@
 import { Target, Users, X, Zap } from 'lucide-react';
-import type { Mission } from '../../../data';
+import { getPaletteColor, type Mission } from '../../../data';
 import type { TaskType } from '../domain';
-
-interface ColorMeta {
-  id: string;
-  name: string;
-  hex: string;
-}
 
 interface Props {
   taskType: TaskType;
   selectedMission: Mission | null;
-  dailyColor: ColorMeta;
+  dailyMission: Mission | null;
+  dailyCompleted?: boolean;
   onSelectDaily: () => void;
   onRequestMission: (type: 'solo' | 'team') => void;
   onClearTask: () => void;
@@ -20,11 +15,20 @@ interface Props {
 export function TaskTypeSelector({
   taskType,
   selectedMission,
-  dailyColor,
+  dailyMission,
+  dailyCompleted = false,
   onSelectDaily,
   onRequestMission,
   onClearTask,
 }: Props) {
+  // Today's daily, surfaced from the server. Pull the swatch tone + label
+  // from the gallery palette so it matches the rest of the UI.
+  const dailySwatch = dailyMission ? getPaletteColor(dailyMission.color) : null;
+  const dailyHex = dailySwatch?.morandi ?? '#9E9E9E';
+  const dailyTitle = dailyMission?.title ?? 'Daily Challenge';
+  const dailyDescription =
+    dailyMission?.description ?? "Today's color challenge";
+  const dailyReward = dailyMission?.reward ?? 20;
   return (
     <div className="mt-6 mb-6 animate-slide-up">
       <div className="flex items-center justify-between mb-3">
@@ -49,27 +53,37 @@ export function TaskTypeSelector({
             Choose a task to earn extra points, or skip to upload for basic points
           </p>
           <div className="space-y-3">
-            {/* Daily Challenge */}
+            {/* Daily Challenge — driven by the server's daily mission.
+                Disabled (with a Completed badge) once today's daily is done. */}
             <button
               type="button"
               onClick={onSelectDaily}
-              className="w-full rounded-2xl p-4 transition-all text-left bg-white border-2 border-gray-200 hover:border-[#FF8A65]"
+              disabled={dailyCompleted}
+              className={`w-full rounded-2xl p-4 transition-all text-left bg-white border-2 border-gray-200 ${
+                dailyCompleted
+                  ? 'opacity-60 cursor-not-allowed'
+                  : 'hover:border-[#FF8A65]'
+              }`}
             >
               <div className="flex items-center gap-3">
                 <div
                   className="w-12 h-12 rounded-full flex items-center justify-center relative"
-                  style={{
-                    background: `linear-gradient(135deg, ${dailyColor.hex} 0%, ${dailyColor.hex}dd 100%)`,
-                  }}
+                  style={{ backgroundColor: dailyHex }}
                 >
                   <Zap className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold mb-1 text-[#2D2520]">Daily Challenge</p>
-                  <p className="text-sm text-gray-600">Find {dailyColor.name} today</p>
+                  <p className="font-bold mb-1 text-[#2D2520]">{dailyTitle}</p>
+                  <p className="text-sm text-gray-600">{dailyDescription}</p>
                 </div>
-                <div className="px-3 py-1 rounded-full text-xs font-semibold bg-[#FFD54F]/20 text-[#F4C430]">
-                  +20 pts
+                <div
+                  className={`px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${
+                    dailyCompleted
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-[#FFD54F]/20 text-[#F4C430]'
+                  }`}
+                >
+                  {dailyCompleted ? '✓ Completed' : `+${dailyReward} pts`}
                 </div>
               </div>
             </button>
@@ -129,18 +143,16 @@ export function TaskTypeSelector({
               <div className="flex items-center gap-3">
                 <div
                   className="w-12 h-12 rounded-full flex items-center justify-center"
-                  style={{
-                    background: `linear-gradient(135deg, ${dailyColor.hex} 0%, ${dailyColor.hex}dd 100%)`,
-                  }}
+                  style={{ backgroundColor: dailyHex }}
                 >
                   <Zap className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-[#2D2520]">Daily Challenge</p>
-                  <p className="text-sm text-gray-600">Find {dailyColor.name} today</p>
+                  <p className="font-bold text-[#2D2520]">{dailyTitle}</p>
+                  <p className="text-sm text-gray-600">{dailyDescription}</p>
                 </div>
                 <div className="px-3 py-1 rounded-full text-xs font-semibold bg-[#FFD54F]/20 text-[#F4C430]">
-                  +20 pts
+                  +{dailyReward} pts
                 </div>
               </div>
             </div>

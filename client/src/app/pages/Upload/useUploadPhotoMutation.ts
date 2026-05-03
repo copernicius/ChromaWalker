@@ -47,6 +47,17 @@ export function useUploadPhotoMutation() {
       // refetch /api/auth/me so Root.tsx writes the fresh user into the
       // zustand store (Header, Profile counters, level progress all read it).
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      // Newly-uploaded color may have just been unlocked.
+      queryClient.invalidateQueries({ queryKey: ['my-unlocked-colors'] });
+      // Counts photos / locations / colors / missions — all achievement inputs.
+      queryClient.invalidateQueries({ queryKey: ['my-achievements'] });
+      // Per-mission progress (1/3 → 2/3) shifts on every catalog upload.
+      queryClient.invalidateQueries({ queryKey: ['my-mission-progress'] });
+      // Team missions: server bumps currentProgress / member.contribution
+      // for taskType=team uploads, and may flip status to 'completed' once
+      // the target is hit. Invalidating the whole namespace covers the open
+      // list, the user's teams, and any per-team detail/queries.
+      queryClient.invalidateQueries({ queryKey: ['team-missions'] });
     },
   });
 }

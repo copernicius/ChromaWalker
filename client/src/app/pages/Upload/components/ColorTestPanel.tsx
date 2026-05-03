@@ -4,7 +4,9 @@ import type { ColorId } from '../domain';
 interface ColorMeta {
   id: string;
   name: string;
+  fancyName?: string;
   hex: string;
+  morandi?: string;
 }
 
 interface Props {
@@ -30,6 +32,18 @@ export function ColorTestPanel({
 }: Props) {
   const isTested = detected !== null;
 
+  // Show both names so the user sees the boutique label and the
+  // actionable literal at once, e.g. "Burnt Sienna (Orange)".
+  const formatColorName = (
+    c: { fancyName?: string; name: string } | null | undefined,
+  ): string => {
+    if (!c) return '';
+    if (c.fancyName && c.fancyName !== c.name) return `${c.fancyName} (${c.name})`;
+    return c.name;
+  };
+  const detectedName = formatColorName(detectedColor);
+  const requiredName = formatColorName(requiredColor) || 'Any color';
+
   if (!isTested && !isTesting) {
     return (
       <div className="animate-fade-in">
@@ -46,7 +60,7 @@ export function ColorTestPanel({
             <>
               Will check if photo contains:{' '}
               <span className="font-semibold text-[#2D2520]">
-                {requiredColor?.name ?? 'Any color'}
+                {requiredName}
               </span>
             </>
           ) : (
@@ -67,8 +81,7 @@ export function ColorTestPanel({
   }
 
   // Tested
-  const detectedHex = detectedColor?.hex ?? '#ccc';
-  const detectedName = detectedColor?.name ?? '';
+  const detectedHex = detectedColor?.morandi ?? detectedColor?.hex ?? '#ccc';
 
   return (
     <div
@@ -78,12 +91,11 @@ export function ColorTestPanel({
           : 'bg-white ring-1 ring-red-400'
       }`}
     >
-      {/* Color Display Header */}
+      {/* Color Display Header — solid Morandi tone (no alpha gradient,
+          which would wash out the already-soft palette into pastel). */}
       <div
         className="px-4 py-3 relative overflow-hidden"
-        style={{
-          background: `linear-gradient(135deg, ${detectedHex}dd 0%, ${detectedHex}99 100%)`,
-        }}
+        style={{ backgroundColor: detectedHex }}
       >
         <div className="relative z-10 flex items-center gap-3">
           <div className="flex-shrink-0">
@@ -132,7 +144,7 @@ export function ColorTestPanel({
           ) : (
             <>
               This photo contains <strong>{detectedName}</strong>, but your task requires{' '}
-              <strong>{requiredColor?.name ?? 'Any color'}</strong>.
+              <strong>{requiredName}</strong>.
             </>
           )}
         </p>

@@ -1,5 +1,10 @@
-import { Home, Palette, Plus, Target, User } from 'lucide-react';
+import { Home, Palette, Plus, Sparkles, Target, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
+
+// How long the passive "attract" animations play before going quiet so they
+// don't become wallpaper noise.
+const ATTRACT_DURATION_MS = 3000;
 
 // 7 hex stops in rainbow order — burst particles only, not tied to the full
 // PALETTE. Angles distribute the particles evenly around the origin.
@@ -35,6 +40,14 @@ function triggerRainbowBurst(centerX: number, centerY: number) {
 
 export function Navigation() {
   const location = useLocation();
+  // Run the attract effect briefly on mount, then go quiet. Navigation
+  // re-mounts when the user leaves /upload (Root.tsx hides it there), so
+  // they get a fresh nudge after each upload, but no perpetual loop.
+  const [attractActive, setAttractActive] = useState(true);
+  useEffect(() => {
+    const t = window.setTimeout(() => setAttractActive(false), ATTRACT_DURATION_MS);
+    return () => window.clearTimeout(t);
+  }, []);
 
   const navItems = [
     { path: '/home', icon: Home, label: 'Home' },
@@ -51,7 +64,11 @@ export function Navigation() {
           {navItems.map(({ path, icon: Icon, label, isUpload }) => {
             const isActive = location.pathname === path;
 
-            // Special styling for upload button (center item)
+            // Special styling for upload button (center item) — passive
+            // "magic" layers attract the eye even when idle:
+            //   • Two staggered halos pulse outward from behind the button.
+            //   • A small sparkle twinkles in/out at the top-right.
+            //   • Click still fires the existing rainbow burst.
             if (isUpload) {
               return (
                 <Link
@@ -66,9 +83,29 @@ export function Navigation() {
                       rect.top + rect.height / 2,
                     );
                   }}
-                  className="flex flex-col items-center justify-center -mt-6"
+                  className="relative flex flex-col items-center justify-center -mt-6"
                 >
-                  <div className="bg-gradient-to-br from-[#FF8A65] to-[#9575CD] text-white rounded-full p-4 shadow-xl hover:shadow-2xl transition-all hover:scale-110 active:scale-95 ring-4 ring-white">
+                  {/* Halo layers + twinkle — only mounted while
+                      attractActive is true, so they fully unmount after the
+                      brief intro and stop consuming render cycles. */}
+                  {attractActive && (
+                    <>
+                      <span
+                        aria-hidden
+                        className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-gradient-to-br from-[#FF8A65] to-[#9575CD] opacity-40 animate-attract-halo pointer-events-none"
+                      />
+                      <span
+                        aria-hidden
+                        className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-gradient-to-br from-[#FF8A65] to-[#9575CD] opacity-40 animate-attract-halo pointer-events-none"
+                        style={{ animationDelay: '1.2s' }}
+                      />
+                      <Sparkles
+                        aria-hidden
+                        className="absolute -top-1 -right-1 w-4 h-4 text-[#FFD54F] drop-shadow-[0_0_6px_rgba(255,213,79,0.8)] animate-attract-twinkle pointer-events-none"
+                      />
+                    </>
+                  )}
+                  <div className="relative z-10 bg-gradient-to-br from-[#FF8A65] to-[#9575CD] text-white rounded-full p-4 shadow-xl hover:shadow-2xl transition-all hover:scale-110 active:scale-95 ring-4 ring-white">
                     <Icon className="w-7 h-7" strokeWidth={2.5} />
                   </div>
                 </Link>

@@ -1,8 +1,11 @@
+import { Sparkles, Target } from 'lucide-react';
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { Header, LocationPicker } from '../../components';
 import { Button } from '../../components/ui';
+import { getPaletteColor } from '../../data';
+import { useMyMissionProgressQuery } from '../../queries';
 import { ColorTestPanel } from './components/ColorTestPanel';
 import { MissionPickerDialog } from './components/MissionPickerDialog';
 import { PhotoCapture } from './components/PhotoCapture';
@@ -22,7 +25,11 @@ export function Upload() {
   const detectMutation = useDetectColorMutation();
   const uploadMutation = useUploadPhotoMutation();
 
-  const { state, dailyColor, mission, detected, detectedColor, requiredColor, colorPassed, pointsEarned, canSubmit, actions } = flow;
+  const { state, dailyMission, mission, detected, detectedColor, requiredColor, colorPassed, pointsEarned, canSubmit, actions } = flow;
+  const { data: missionProgress = {} } = useMyMissionProgressQuery();
+  const dailyCompleted =
+    !!dailyMission &&
+    (missionProgress[dailyMission.id] ?? 0) >= (dailyMission.total ?? 1);
 
   const image =
     state.step.kind === 'photo-selected' || state.step.kind === 'color-tested'
@@ -30,6 +37,27 @@ export function Upload() {
       : null;
 
   const hasTaskRequirement = state.taskType === 'daily' || mission !== null;
+
+  // Deep-link prefill: Missions page links here as
+  //   /upload?taskType=daily|solo|team&missionId=<id>
+  // We pre-select the mission once on mount so the user lands ready to shoot.
+  const [searchParams, setSearchParams] = useSearchParams();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only run once
+  useEffect(() => {
+    const taskType = searchParams.get('taskType');
+    const missionId = searchParams.get('missionId');
+    if (
+      missionId &&
+      (taskType === 'daily' || taskType === 'solo' || taskType === 'team')
+    ) {
+      actions.setMission(taskType, missionId);
+      // Clean the params so a refresh doesn't keep re-applying.
+      const next = new URLSearchParams(searchParams);
+      next.delete('taskType');
+      next.delete('missionId');
+      setSearchParams(next, { replace: true });
+    }
+  }, []);
 
   // Redirect after upload success
   useEffect(() => {
@@ -75,8 +103,11 @@ export function Upload() {
         pointsAwarded: pointsEarned,
       },
       {
-        onSuccess: () => {
-          actions.uploadSuccess(pointsEarned);
+        // Server may award fewer points than the client estimated (catalog
+        // missions only pay the full reward on the upload that completes
+        // them). Read the authoritative figure off the saved photo.
+        onSuccess: (photo) => {
+          actions.uploadSuccess(photo.pointsAwarded ?? 0);
         },
         onError: () => {
           toast.error('Upload failed. Please try again.');
@@ -110,6 +141,51 @@ export function Upload() {
           <p className="text-gray-600">Share your color discovery</p>
         </div>
 
+        {/* Mission hint — visible whenever a task is selected (deep link
+            from Missions page or picked via TaskTypeSelector). Tells the
+            user what color they're hunting for at a glance. */}
+        {mission && (() => {
+          const colorMeta = getPaletteColor(mission.color);
+          const isRainbow = mission.color === 'rainbow';
+          const swatch = isRainbow
+            ? 'linear-gradient(135deg, #B86060 0%, #C08762 33%, #7E9683 66%, #5F7B96 100%)'
+            : (colorMeta?.morandi ?? '#9E9E9E');
+          // Use the literal palette name (e.g. "Red") so the instruction is
+          // unambiguous when the user is actually hunting for the color.
+          const colorLabel = isRainbow
+            ? 'Any color'
+            : (colorMeta?.name ?? mission.color);
+          const target = mission.total ?? 1;
+          const progress = mission.teamMission
+            ? (mission.progress ?? 0)
+            : (missionProgress[mission.id] ?? 0);
+          const progressLabel =
+            target > 1 ? ` · ${Math.min(progress, target)}/${target}` : '';
+
+          return (
+            <div className="bg-white rounded-2xl p-4 shadow-sm mb-6 flex items-center gap-3 animate-fade-in">
+              <div
+                className="w-12 h-12 rounded-xl shadow-sm flex-shrink-0 flex items-center justify-center"
+                style={{ background: swatch }}
+              >
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+                  <Target className="w-3 h-3" />
+                  On mission · +{mission.reward} pts{progressLabel}
+                </p>
+                <p className="font-semibold text-[#2D2520] truncate">
+                  {mission.title}
+                </p>
+                <p className="text-xs text-gray-600 truncate">
+                  Find {colorLabel.toLowerCase()}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="bg-white rounded-3xl p-6 shadow-sm mb-6">
           <h3 className="font-semibold mb-4 text-[#2D2520]">Choose Photo</h3>
 
@@ -136,8 +212,9 @@ export function Upload() {
             <TaskTypeSelector
               taskType={state.taskType}
               selectedMission={mission}
-              dailyColor={dailyColor}
-              onSelectDaily={actions.selectDaily}
+              dailyMission={dailyMission}
+              dailyCompleted={dailyCompleted}
+              onSelectDaily={() => actions.selectDaily(dailyMission?.id ?? null)}
               onRequestMission={actions.openMissionDialog}
               onClearTask={actions.clearTask}
             />

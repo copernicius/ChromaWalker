@@ -1,20 +1,9 @@
 // Mock data for ChromaWalk
-
-export const RAINBOW_COLORS = [
-  { id: 'red', name: 'Sunset Orange', category: 'WARM', hex: '#FF8A65', unlocked: true },
-  { id: 'orange', name: 'Burnt Sienna', category: 'WARM', hex: '#D2691E', unlocked: true },
-  { id: 'yellow', name: 'Lemon Zest', category: 'NEUTRAL', hex: '#FFD54F', unlocked: true },
-  { id: 'green', name: 'Sage Green', category: 'EARTH', hex: '#8BA888', unlocked: true },
-  { id: 'blue', name: 'Ocean Teal', category: 'COOL', hex: '#4DB6AC', unlocked: true },
-  { id: 'indigo', name: 'Soft Lavender', category: 'RARE', hex: '#9575CD', unlocked: true },
-  { id: 'violet', name: 'Dusty Violet', category: 'RARE', hex: '#AB98C5', unlocked: true },
-];
-
-export const RARE_COLORS = [
-  { id: 'pink', name: 'Warm Blush', category: 'WARM', hex: '#E8B4A8', unlocked: false, requiredLevel: 5 },
-  { id: 'gold', name: 'Golden Hour', category: 'WARM', hex: '#F4C430', unlocked: false, requiredLevel: 8 },
-  { id: 'turquoise', name: 'Terracotta', category: 'EARTH', hex: '#B07356', unlocked: false, requiredLevel: 10 },
-];
+//
+// The boutique RAINBOW_COLORS / RARE_COLORS arrays were removed during a
+// palette consolidation pass. PALETTE (data/colors.ts) is the single source
+// of truth for color metadata — it carries `name` (literal),
+// `fancyName` (boutique label), `hex` (saturated), and `morandi` (display).
 
 export interface Photo {
   id: string;
@@ -27,6 +16,7 @@ export interface Photo {
   favorites: number;
   username: string;
   avatarUrl?: string;
+  pointsAwarded?: number;
   timestamp: Date;
   comments: number;
   caption?: string;

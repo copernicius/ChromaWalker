@@ -96,8 +96,12 @@ export function PhotoDetail({ photo, onClose }: PhotoDetailProps) {
             {/* Color Tag */}
             {color && (
               <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white border border-gray-200">
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color.hex }} />
-                <span className="text-sm font-medium text-[#2D2520]">{color.name}</span>
+                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color.morandi }} />
+                <span className="text-sm font-medium text-[#2D2520]">
+                  {color.fancyName && color.fancyName !== color.name
+                    ? `${color.fancyName} (${color.name})`
+                    : color.name}
+                </span>
               </div>
             )}
           </div>

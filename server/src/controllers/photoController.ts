@@ -3,10 +3,16 @@ import path from "node:path";
 import type { Request, Response } from "express";
 import { PALETTE_IDS } from "../lib/palette";
 import { ErrCode, fail, ok } from "../lib/response";
+import mongoose from "mongoose";
+import { evaluateCatalogUpload } from "../lib/missionProgress";
+import { findCatalogMission } from "../lib/missions";
+import { emitToTeam } from "../lib/realtime";
+import { validateContribution } from "../lib/taskValidation";
 import Bookmark from "../models/Bookmark";
 import Comment from "../models/Comment";
 import Like from "../models/Like";
 import Photo, { type TaskType } from "../models/Photo";
+import TeamMission from "../models/TeamMission";
 import User from "../models/User";
 
 const ALLOWED_TASK_TYPES = new Set<Exclude<TaskType, null>>([
@@ -54,11 +60,6 @@ export async function uploadPhoto(req: Request, res: Response): Promise<void> {
 			return;
 		}
 
-		if (!location) {
-			fail(res, ErrCode.MISSING_PARAM, "location is required");
-			return;
-		}
-
 		// Empty string from FormData → null (free upload).
 		let taskType: TaskType = null;
 		if (rawTaskType && rawTaskType !== "") {
@@ -84,6 +85,34 @@ export async function uploadPhoto(req: Request, res: Response): Promise<void> {
 			return;
 		}
 
+		// Task constraint validation. v1 = color only. Look up the task by
+		// missionId across both catalog (daily/solo) and DB (team), then
+		// run the shared validator. Free uploads (no missionId) skip this.
+		if (missionId) {
+			let taskColor: string | null = null;
+			if (taskType === "daily" || taskType === "solo") {
+				const cfg = findCatalogMission(missionId);
+				if (cfg) taskColor = cfg.color;
+			} else if (taskType === "team") {
+				if (mongoose.isValidObjectId(missionId)) {
+					const team = await TeamMission.findById(missionId);
+					if (team) taskColor = team.color;
+				}
+			}
+
+			if (taskColor !== null) {
+				const result = validateContribution({ color: taskColor }, color);
+				if (!result.ok) {
+					fail(
+						res,
+						ErrCode.INVALID_PARAM,
+						`Photo color does not match the task (failed: ${result.failures.join(", ")})`,
+					);
+					return;
+				}
+			}
+		}
+
 		const user = await User.findById(userId);
 		if (!user) {
 			fail(res, ErrCode.NOT_FOUND, "User not found");
@@ -96,14 +125,47 @@ export async function uploadPhoto(req: Request, res: Response): Promise<void> {
 		// (0, 0) is in the ocean and would pollute nearby queries.
 		const hasCoords = latNum !== 0 && lngNum !== 0;
 
+		// Compute the *effective* points for this photo and whether it
+		// finishes a mission.
+		//   • team:        always 0 — pool is split on team completion below.
+		//   • solo/daily:  0 per contribution; full reward only on the upload
+		//                  that crosses the mission's target.
+		//   • free upload: trust client (default 10).
+		const isTeamUpload = taskType === "team" && !!missionId;
+		const isCatalogUpload =
+			(taskType === "solo" || taskType === "daily") && !!missionId;
+		let effectivePoints = points;
+		let completesCatalogMission = false;
+
+		if (isTeamUpload) {
+			effectivePoints = 0;
+		} else if (isCatalogUpload) {
+			const cfg = findCatalogMission(missionId);
+			if (cfg) {
+				const existing = await Photo.countDocuments({
+					userId: user._id,
+					taskType,
+					missionId,
+				});
+				const evalResult = evaluateCatalogUpload(
+					user,
+					taskType as "solo" | "daily",
+					cfg,
+					existing,
+				);
+				effectivePoints = evalResult.pointsAwarded;
+				completesCatalogMission = evalResult.completesNow;
+			}
+		}
+
 		const photo = await Photo.create({
 			userId: user._id,
 			imageUrl: `/tmp/${req.file.filename}`,
 			color,
 			taskType,
 			missionId: missionId || undefined,
-			pointsAwarded: points,
-			location,
+			pointsAwarded: effectivePoints,
+			location: location ?? '',
 			lat: latNum,
 			lng: lngNum,
 			geo: hasCoords
@@ -114,12 +176,59 @@ export async function uploadPhoto(req: Request, res: Response): Promise<void> {
 			avatarUrl: user.avatarUrl,
 		});
 
-		user.points += points;
+		user.points += effectivePoints;
 		user.photosUploaded += 1;
-		if (taskType === "solo" || taskType === "team") {
+		// missionsCompleted now means "missions you actually finished," not
+		// "contribution events." Team completion is handled inside the
+		// team-progression block below.
+		if (completesCatalogMission) {
 			user.missionsCompleted += 1;
+			// Pin solo completions permanently so a later delete-then-reupload
+			// can't unlock the reward again. (missionId is guaranteed truthy
+			// inside the completesCatalogMission branch above.)
+			if (taskType === "solo" && missionId) {
+				if (!user.completedMissionIds) user.completedMissionIds = [];
+				user.completedMissionIds.push(missionId);
+			}
 		}
 		await user.save();
+
+		// Team mission progression — only after the photo + user are saved.
+		// Skipped silently if the mission doesn't exist, isn't in progress, or
+		// the user isn't a member (e.g. stale missionId from the client).
+		if (isTeamUpload && mongoose.isValidObjectId(missionId)) {
+			const team = await TeamMission.findById(missionId);
+			if (team && team.status === "in_progress") {
+				const member = team.members.find((m) => String(m.userId) === userId);
+				if (member) {
+					member.contribution += 1;
+					team.currentProgress += 1;
+
+					if (team.currentProgress >= team.target) {
+						team.status = "completed";
+						team.completedAt = new Date();
+						const share = Math.floor(team.reward / team.members.length);
+						const memberIds = team.members.map((m) => m.userId);
+						// Single $inc per member: bump missionsCompleted (every
+						// member finished the mission) and award their share if
+						// it's a positive amount.
+						const inc: Record<string, number> = { missionsCompleted: 1 };
+						if (share > 0) inc.points = share;
+						await User.updateMany(
+							{ _id: { $in: memberIds } },
+							{ $inc: inc },
+						);
+					}
+
+					await team.save();
+
+					// Broadcast the new state to every connected member of this
+					// team — the uploader's own client invalidates locally; this
+					// is what keeps everyone else's view from going stale.
+					emitToTeam(String(team._id), "team:updated", team.toJSON());
+				}
+			}
+		}
 
 		ok(res, photo);
 	} catch (err) {

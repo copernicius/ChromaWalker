@@ -1,7 +1,7 @@
 import { Locate, MapPin, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { Header } from '../components';
-import { type Photo, RAINBOW_COLORS } from '../data';
+import { getPaletteColor, type Photo } from '../data';
 import { usePhotosQuery } from '../queries';
 
 export function MapExplore() {
@@ -60,7 +60,7 @@ export function MapExplore() {
           {Object.entries(photoLocations).map(([key, photos], index) => {
             const [_lat, _lng] = key.split(',').map(Number);
             const mainPhoto = photos[0];
-            const color = RAINBOW_COLORS.find((c) => c.id === mainPhoto.color);
+            const color = getPaletteColor(mainPhoto.color);
 
             // Simulate positioning
             const x = 15 + (index % 6) * 14;
@@ -82,12 +82,12 @@ export function MapExplore() {
                   {/* Ping animation */}
                   <div
                     className="absolute inset-0 rounded-full animate-ping opacity-75"
-                    style={{ backgroundColor: color?.hex }}
+                    style={{ backgroundColor: color?.morandi }}
                   />
 
                   <div
                     className="relative w-14 h-14 rounded-full border-4 border-white shadow-xl overflow-hidden transform transition-transform hover:rotate-6"
-                    style={{ backgroundColor: color?.hex }}
+                    style={{ backgroundColor: color?.morandi }}
                   >
                     <img
                       src={mainPhoto.imageUrl}
@@ -188,7 +188,7 @@ export function MapExplore() {
               .slice(0, 6)
               .map(([key, photos], index) => {
                 const mainPhoto = photos[0];
-                const color = RAINBOW_COLORS.find((c) => c.id === mainPhoto.color);
+                const color = getPaletteColor(mainPhoto.color);
 
                 return (
                   <button
@@ -202,7 +202,7 @@ export function MapExplore() {
                       <div className="relative">
                         <div
                           className="w-16 h-16 rounded-xl flex-shrink-0 shadow-md overflow-hidden"
-                          style={{ backgroundColor: color?.hex }}
+                          style={{ backgroundColor: color?.morandi }}
                         >
                           <img
                             src={mainPhoto.imageUrl}
@@ -212,7 +212,7 @@ export function MapExplore() {
                         </div>
                         <div
                           className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white shadow-sm"
-                          style={{ backgroundColor: color?.hex }}
+                          style={{ backgroundColor: color?.morandi }}
                         />
                       </div>
                       <div className="flex-1">

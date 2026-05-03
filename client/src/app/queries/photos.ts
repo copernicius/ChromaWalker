@@ -49,6 +49,12 @@ export function useDeletePhotoMutation() {
       // Server reversed the user's points/counters — refetch me so the
       // store catches up.
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      // Deleting the last photo of a color re-locks the achievement.
+      queryClient.invalidateQueries({ queryKey: ['my-unlocked-colors'] });
+      // Same counts that drive achievements just changed.
+      queryClient.invalidateQueries({ queryKey: ['my-achievements'] });
+      // Mission progress likewise — deleting a contribution decrements it.
+      queryClient.invalidateQueries({ queryKey: ['my-mission-progress'] });
     },
   });
 }

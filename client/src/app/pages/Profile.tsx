@@ -1,8 +1,8 @@
-import { Award, Camera, Heart, LogIn, LogOut, MapPin, Settings, Star, Trash2, Upload } from 'lucide-react';
+import { Award, Camera, Heart, Lock, LogIn, LogOut, MapPin, Settings, Star, Trash2, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { Header, PhotoCard, PhotoDetail } from '../components';
+import { Header, PhotoDetail, WaterfallGrid } from '../components';
 import {
   Button,
   Dialog,
@@ -19,11 +19,13 @@ import {
   TabsList,
   TabsTrigger,
 } from '../components/ui';
-import { MOCK_ACHIEVEMENTS, RAINBOW_COLORS } from '../data';
 import { queryClient } from '../lib';
 import {
   useDeletePhotoMutation,
+  useMyAchievementsQuery,
   useMyBookmarksQuery,
+  useMyUnlockedColorsQuery,
+  usePaletteQuery,
   usePhotosQuery,
   useUpdateProfileMutation,
   useUserLevel,
@@ -41,6 +43,10 @@ export function Profile() {
   const totalLikes = userPhotos.reduce((sum, photo) => sum + photo.likes, 0);
   const { data: bookmarkIds = [] } = useMyBookmarksQuery();
   const savedPhotos = allPhotos.filter((p) => bookmarkIds.includes(p.id));
+  const { data: palette = [] } = usePaletteQuery();
+  const { data: unlockedColorIds = [] } = useMyUnlockedColorsQuery();
+  const unlockedSet = new Set(unlockedColorIds);
+  const { data: achievements = [] } = useMyAchievementsQuery();
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
@@ -316,9 +322,9 @@ export function Profile() {
                 <Award className="w-6 h-6 text-yellow-600" />
               </div>
               <p className="text-2xl font-bold">
-                {MOCK_ACHIEVEMENTS.filter((a) => a.unlocked).length}
+                {unlockedSet.size}/{palette.length}
               </p>
-              <p className="text-xs text-gray-600">Achievements</p>
+              <p className="text-xs text-gray-600">Colors</p>
             </button>
             <div className="text-center">
               <div className="bg-pink-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -330,29 +336,64 @@ export function Profile() {
           </div>
         </div>
 
-        {/* Achievements View */}
+        {/* Achievements View — every palette color is an achievement.
+            Unlocked = the user has uploaded at least one photo of that
+            color (server-derived via /api/auth/me/unlocked-colors). */}
         {activeView === 'achievements' && (
           <>
-            {/* Unlocked Colors */}
             <div className="bg-white rounded-lg p-5 shadow-sm mb-6">
-              <h3 className="font-semibold mb-4">Unlocked Colors</h3>
-              <div className="grid grid-cols-7 gap-2">
-                {RAINBOW_COLORS.map((color) => (
-                  <div
-                    key={color.id}
-                    className="aspect-square rounded-lg shadow-sm"
-                    style={{ backgroundColor: color.hex }}
-                    title={color.name}
-                  />
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">Unlocked Colors</h3>
+                <span className="text-sm text-gray-600">
+                  {unlockedSet.size}/{palette.length}
+                </span>
               </div>
+              <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
+                {palette.map((color) => {
+                  const unlocked = unlockedSet.has(color.id);
+                  return (
+                    <div key={color.id} className="flex flex-col items-center">
+                      <div
+                        className={`relative w-full aspect-square rounded-lg border border-gray-200 shadow-sm transition-all ${
+                          unlocked ? '' : 'grayscale opacity-40'
+                        }`}
+                        style={{ backgroundColor: color.morandi }}
+                      >
+                        {!unlocked && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-lg">
+                            <Lock className="w-3.5 h-3.5 text-white drop-shadow" />
+                          </div>
+                        )}
+                      </div>
+                      <p
+                        className={`text-[10px] mt-1 font-medium text-center truncate w-full ${
+                          unlocked ? 'text-[#2D2520]' : 'text-gray-400'
+                        }`}
+                      >
+                        {color.fancyName ?? color.name}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+              {unlockedSet.size === 0 && (
+                <p className="text-xs text-gray-500 text-center mt-4">
+                  Upload a photo to start unlocking colors.
+                </p>
+              )}
             </div>
 
-            {/* Achievements */}
+            {/* Achievements — server-hydrated. Config in
+                server/src/lib/achievements.ts; progress derived per user. */}
             <div className="bg-white rounded-lg p-5 shadow-sm mb-6">
-              <h3 className="font-semibold mb-4">Achievements</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">Achievements</h3>
+                <span className="text-sm text-gray-600">
+                  {achievements.filter((a) => a.unlocked).length}/{achievements.length}
+                </span>
+              </div>
               <div className="space-y-3">
-                {MOCK_ACHIEVEMENTS.map((achievement) => (
+                {achievements.map((achievement) => (
                   <div
                     key={achievement.id}
                     className={`p-3 rounded-lg border ${
@@ -374,7 +415,9 @@ export function Profile() {
                         </div>
                         <div>
                           <p className="font-semibold">{achievement.name}</p>
-                          <p className="text-xs text-gray-600">{achievement.description}</p>
+                          <p className="text-xs text-gray-600">
+                            {achievement.description}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -416,16 +459,11 @@ export function Profile() {
 
             <TabsContent value="photos">
               {userPhotos.length > 0 ? (
-                <div className="grid grid-cols-2 gap-4">
-                  {userPhotos.map((photo) => (
-                    <PhotoCard
-                      key={photo.id}
-                      photo={photo}
-                      onClick={() => setSelectedPhotoId(photo.id)}
-                      onDelete={() => setPendingDeleteId(photo.id)}
-                    />
-                  ))}
-                </div>
+                <WaterfallGrid
+                  photos={userPhotos}
+                  onSelect={setSelectedPhotoId}
+                  onDelete={setPendingDeleteId}
+                />
               ) : (
                 <div className="text-center py-12 bg-white rounded-lg">
                   <Camera className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -436,15 +474,10 @@ export function Profile() {
 
             <TabsContent value="saved">
               {savedPhotos.length > 0 ? (
-                <div className="grid grid-cols-2 gap-4">
-                  {savedPhotos.map((photo) => (
-                    <PhotoCard
-                      key={photo.id}
-                      photo={photo}
-                      onClick={() => setSelectedPhotoId(photo.id)}
-                    />
-                  ))}
-                </div>
+                <WaterfallGrid
+                  photos={savedPhotos}
+                  onSelect={setSelectedPhotoId}
+                />
               ) : (
                 <div className="text-center py-12 bg-white rounded-lg">
                   <Star className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -457,25 +490,56 @@ export function Profile() {
             </TabsContent>
 
             <TabsContent value="locations">
-              <div className="bg-white rounded-lg p-5">
-                <div className="space-y-3">
-                  {Array.from(new Set(userPhotos.map((p) => p.location))).map((location) => {
-                    const count = userPhotos.filter((p) => p.location === location).length;
-                    return (
-                      <div
-                        key={location}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <MapPin className="w-5 h-5 text-blue-500" />
-                          <span className="font-medium">{location}</span>
-                        </div>
-                        <span className="text-sm text-gray-600">{count} photos</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              {(() => {
+                // Only photos with a real location string contribute to a
+                // "place" — empty/whitespace strings (typed and never picked
+                // on the map) are filtered out so they don't render as a
+                // ghost row.
+                const locatedPhotos = userPhotos.filter((p) => p.location?.trim());
+                const uniqueLocations = Array.from(
+                  new Set(locatedPhotos.map((p) => p.location)),
+                );
+
+                if (uniqueLocations.length === 0) {
+                  return (
+                    <div className="text-center py-12 bg-white rounded-lg">
+                      <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-600">No locations yet</p>
+                      <p className="text-xs text-gray-500 mt-1 max-w-xs mx-auto">
+                        {userPhotos.length === 0
+                          ? 'Upload a photo to see it pinned here.'
+                          : 'Add a location when you upload (tap the map pin) and it will appear here.'}
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="bg-white rounded-lg p-5">
+                    <div className="space-y-3">
+                      {uniqueLocations.map((location) => {
+                        const count = locatedPhotos.filter(
+                          (p) => p.location === location,
+                        ).length;
+                        return (
+                          <div
+                            key={location}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                          >
+                            <div className="flex items-center gap-3">
+                              <MapPin className="w-5 h-5 text-blue-500" />
+                              <span className="font-medium">{location}</span>
+                            </div>
+                            <span className="text-sm text-gray-600">
+                              {count} photos
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </TabsContent>
           </Tabs>
         )}

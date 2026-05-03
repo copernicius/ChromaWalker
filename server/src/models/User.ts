@@ -10,6 +10,11 @@ export interface IUser extends Document {
   nextLevelPoints: number;
   photosUploaded: number;
   missionsCompleted: number;
+  // Permanent record of solo missions the user has finished. Once an id
+  // lands here it stays — deleting contribution photos doesn't un-complete
+  // the mission and doesn't allow re-rewarding. Daily ids are NOT tracked
+  // here (they're date-scoped and re-completion is bounded to ±1 reward).
+  completedMissionIds: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +30,7 @@ const userSchema = new Schema<IUser>(
     nextLevelPoints: { type: Number, default: 100 },
     photosUploaded: { type: Number, default: 0 },
     missionsCompleted: { type: Number, default: 0 },
+    completedMissionIds: { type: [String], default: [] },
   },
   { timestamps: true },
 );

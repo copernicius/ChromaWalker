@@ -1,16 +1,22 @@
 import {
+  Camera,
   Clock,
   Grid3x3,
+  Lock,
   Map as MapIcon,
   Palette,
   TrendingUp,
   X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { PhotoCard, PhotoDetail, PhotoMap } from '../components';
 import { getPaletteColor, type Photo } from '../data';
-import { usePaletteQuery, usePhotosQuery } from '../queries';
+import {
+  useMyUnlockedColorsQuery,
+  usePaletteQuery,
+  usePhotosQuery,
+} from '../queries';
 
 export function Galleries() {
   const [_searchQuery, _setSearchQuery] = useState('');
@@ -40,9 +46,26 @@ export function Galleries() {
   const [sortBy, setSortBy] = useState<'recent' | 'popular'>('recent');
   const { data: allPhotos = [] } = usePhotosQuery();
   const { data: palette } = usePaletteQuery();
+  const { data: unlockedColorIds } = useMyUnlockedColorsQuery();
+
+  // Visibility gate: signed-in users only see photos in colors they've
+  // unlocked (= ever uploaded a photo of). When `data` is `undefined`
+  // (signed out / still loading) we don't filter — keeps the gallery
+  // browsable for unauthenticated visitors and avoids a flash of empty.
+  const unlockedSet = useMemo(
+    () => (unlockedColorIds === undefined ? null : new Set(unlockedColorIds)),
+    [unlockedColorIds],
+  );
+  const visiblePhotos = useMemo(
+    () =>
+      unlockedSet === null
+        ? allPhotos
+        : allPhotos.filter((p) => unlockedSet.has(p.color)),
+    [allPhotos, unlockedSet],
+  );
 
   const getPhotoCount = (colorId: string) => {
-    return allPhotos.filter((p) => p.color === colorId).length;
+    return visiblePhotos.filter((p) => p.color === colorId).length;
   };
 
   // Aggregate photos by location *name* so Popular Spots dedupes when pins
@@ -53,7 +76,7 @@ export function Galleries() {
     const photoWeight = (p: Photo) => p.likes + p.favorites;
 
     const byName = new Map<string, Photo[]>();
-    for (const photo of allPhotos) {
+    for (const photo of visiblePhotos) {
       if (!photo.location) continue;
       const list = byName.get(photo.location) ?? [];
       list.push(photo);
@@ -68,7 +91,7 @@ export function Galleries() {
         return { name, photos: sorted, mainPhoto: sorted[0], totalWeight };
       })
       .sort((a, b) => b.totalWeight - a.totalWeight);
-  }, [allPhotos]);
+  }, [visiblePhotos]);
 
   // Coords to pan the map to when a Popular Spot row is tapped. New object
   // identity per click so PhotoMap's effect re-fires on repeat clicks too.
@@ -97,12 +120,17 @@ export function Galleries() {
     : null;
   const topPhotosAtSpot = selectedSpot ? selectedSpot.photos.slice(0, 5) : [];
 
-  const selectedPhotoData = selectedPhoto ? allPhotos.find((p) => p.id === selectedPhoto) : null;
+  // Lookup against visiblePhotos so deep links to a locked-color photo
+  // simply don't open the modal (rather than leaking a hidden image).
+  const selectedPhotoData = selectedPhoto
+    ? visiblePhotos.find((p) => p.id === selectedPhoto)
+    : null;
 
-  // Filter photos by color when selected
+  // Filter photos by color when selected (operates on the already-visible
+  // set, so locked colors can never sneak through even via the chip strip).
   const filteredPhotos = selectedColorFilter
-    ? allPhotos.filter((p) => p.color === selectedColorFilter)
-    : allPhotos;
+    ? visiblePhotos.filter((p) => p.color === selectedColorFilter)
+    : visiblePhotos;
 
   // Sort photos
   const sortedPhotos = [...filteredPhotos].sort((a, b) => {
@@ -134,9 +162,16 @@ export function Galleries() {
           </h1>
           <p className="text-sm text-gray-600">
             {selectedColorFilter
-              ? `${filteredPhotos.length} photos · ${getPaletteColor(selectedColorFilter)?.name ?? 'All'}`
-              : `${allPhotos.length} photos`}
+              ? `${filteredPhotos.length} photos`
+              : `${visiblePhotos.length} photos`}
           </p>
+          {/* Friendly reminder that gating is happening — only shown when
+              there's actually a gate (signed-in user with a palette loaded). */}
+          {unlockedSet !== null && palette.length > 0 && (
+            <p className="text-xs text-gray-400 mt-0.5">
+              You can only view unlocked colors.
+            </p>
+          )}
         </div>
 
         {/* Single Line: Colors + Color Picker + Sort + View Toggle */}
@@ -168,21 +203,47 @@ export function Galleries() {
             >
               <div
                 className="w-4 h-4 rounded-full shadow-sm flex-shrink-0 border border-gray-200"
-                style={{ backgroundColor: color.hex }}
+                style={{ backgroundColor: color.morandi }}
               />
-              <span className="text-gray-700 font-medium">{color.name}</span>
+              <span className="text-gray-700 font-medium">{color.fancyName ?? color.name}</span>
             </button>
           ))}
 
-          {/* Color Picker button - Always visible */}
-          <button
-            type="button"
-            onClick={() => setShowColorPicker(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm whitespace-nowrap transition-all flex-shrink-0 bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
-          >
-            <Palette className="w-4 h-4 text-[#C89F7B]" />
-            <span className="font-medium">Color Picker</span>
-          </button>
+          {/* Color Picker button — shows the active filter color when one
+              is selected, falls back to the palette icon otherwise. */}
+          {(() => {
+            const active = selectedColorFilter
+              ? getPaletteColor(selectedColorFilter)
+              : null;
+            return (
+              <button
+                type="button"
+                onClick={() => setShowColorPicker(true)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm whitespace-nowrap transition-all flex-shrink-0 border ${
+                  active
+                    ? 'bg-white text-[#2D2520] border-[#2D2520]/20 shadow-sm'
+                    : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-200'
+                }`}
+                aria-label={
+                  active
+                    ? `Filtering by ${active.fancyName ?? active.name}`
+                    : 'Open color picker'
+                }
+              >
+                {active ? (
+                  <span
+                    className="w-4 h-4 rounded-full border border-gray-200"
+                    style={{ backgroundColor: active.morandi }}
+                  />
+                ) : (
+                  <Palette className="w-4 h-4 text-[#C89F7B]" />
+                )}
+                <span className="font-medium">
+                  {active ? (active.fancyName ?? active.name) : 'Color Picker'}
+                </span>
+              </button>
+            );
+          })()}
 
           {/* Spacer to push right items - Always pushes to right */}
           <div className="flex-1" />
@@ -245,25 +306,55 @@ export function Galleries() {
         </div>
 
         {/* GRID VIEW */}
-        {viewMode === 'grid' && (
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            {sortedPhotos.map((photo, index) => (
-              <div
-                key={photo.id}
-                className="animate-scale-in"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                <PhotoCard photo={photo} onClick={() => setSelectedPhoto(photo.id)} />
+        {viewMode === 'grid' &&
+          (sortedPhotos.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {sortedPhotos.map((photo, index) => (
+                  <div
+                    key={photo.id}
+                    className="animate-scale-in"
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
+                    <PhotoCard photo={photo} onClick={() => setSelectedPhoto(photo.id)} />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+              {/* End-of-list marker so users know they've seen everything. */}
+              <p className="text-center text-sm text-gray-400 mb-6">
+                — You've reached the end —
+              </p>
+            </>
+          ) : (
+            // Empty state — only reachable when the user has zero unlocked
+            // colors (since picker tiles for locked colors are disabled, no
+            // filter can produce a partial-empty case).
+            <div className="bg-white rounded-3xl p-8 text-center shadow-sm mb-6 animate-fade-in">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#FF8A65] to-[#9575CD] flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-[#2D2520] mb-2">
+                Your gallery is locked
+              </h3>
+              <p className="text-sm text-gray-600 mb-5 max-w-sm mx-auto leading-relaxed">
+                Upload a photo to unlock its color — then you'll see all the
+                photos other walkers have captured in that color.
+              </p>
+              <Link
+                to="/upload"
+                className="inline-flex items-center gap-2 bg-[#2D2520] text-white px-6 py-3 rounded-full font-semibold shadow-md hover:shadow-lg transition-all hover:scale-105 active:scale-95"
+              >
+                <Camera className="w-5 h-5" />
+                Take your first photo
+              </Link>
+            </div>
+          ))}
 
         {/* MAP VIEW */}
         {viewMode === 'map' && (
           <>
             <PhotoMap
-              photos={allPhotos}
+              photos={visiblePhotos}
               onSelect={setSelectedPhoto}
               centerOn={centerOn}
             />
@@ -387,41 +478,68 @@ export function Galleries() {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              All Colors · {allPhotos.length}
+              All Colors · {visiblePhotos.length}
             </button>
 
-            {/* Palette grid */}
+            {/* Palette grid — locked when unlockedSet exists and excludes
+                the color (i.e. signed-in user hasn't uploaded this color
+                yet). Locked tiles are non-interactive. */}
             <div className="grid grid-cols-4 gap-3">
               {palette.map((color, index) => {
                 const count = getPhotoCount(color.id);
-                const hasPhotos = count > 0;
                 const isSelected = selectedColorFilter === color.id;
+                const isLocked =
+                  unlockedSet !== null && !unlockedSet.has(color.id);
 
                 return (
                   <button
                     type="button"
                     key={color.id}
                     onClick={() => {
-                      setSelectedColorFilter(color.id);
+                      if (isLocked) return;
+                      // Toggle: tapping the already-selected tile clears
+                      // the filter (back to All Colors).
+                      setSelectedColorFilter(isSelected ? null : color.id);
                       setShowColorPicker(false);
                     }}
-                    className={`relative transition-all hover:scale-105 active:scale-95 animate-scale-in ${
+                    disabled={isLocked}
+                    className={`relative transition-all animate-scale-in ${
+                      isLocked
+                        ? 'cursor-not-allowed'
+                        : 'hover:scale-105 active:scale-95'
+                    } ${
                       isSelected ? 'ring-4 ring-[#2D2520] ring-offset-2' : ''
-                    } ${!hasPhotos ? 'opacity-50' : ''}`}
+                    } ${isLocked || count === 0 ? 'opacity-50' : ''}`}
                     style={{ animationDelay: `${index * 0.03}s` }}
-                    aria-label={`Filter by ${color.name}, ${count} photo${count === 1 ? '' : 's'}`}
+                    aria-label={
+                      isLocked
+                        ? `${color.fancyName ?? color.name} — locked`
+                        : `Filter by ${color.fancyName ?? color.name}, ${count} photo${count === 1 ? '' : 's'}`
+                    }
                   >
                     <div
-                      className="aspect-square rounded-2xl shadow-md border border-gray-200"
-                      style={{ backgroundColor: color.hex }}
-                    />
-                    {hasPhotos && (
+                      className={`relative aspect-square rounded-2xl shadow-md border border-gray-200 ${
+                        isLocked ? 'grayscale' : ''
+                      }`}
+                      style={{ backgroundColor: color.morandi }}
+                    >
+                      {isLocked && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/15 rounded-2xl">
+                          <Lock className="w-5 h-5 text-white drop-shadow" />
+                        </div>
+                      )}
+                    </div>
+                    {!isLocked && count > 0 && (
                       <div className="absolute -top-1.5 -right-1.5 bg-[#2D2520] text-white text-xs rounded-full min-w-5 h-5 px-1 flex items-center justify-center font-bold shadow-md">
                         {count}
                       </div>
                     )}
-                    <p className="text-xs text-center mt-1 font-medium text-gray-700">
-                      {color.name}
+                    <p
+                      className={`text-xs text-center mt-1 font-medium leading-tight line-clamp-2 min-h-[2lh] ${
+                        isLocked ? 'text-gray-400' : 'text-gray-700'
+                      }`}
+                    >
+                      {color.fancyName ?? color.name}
                     </p>
                   </button>
                 );

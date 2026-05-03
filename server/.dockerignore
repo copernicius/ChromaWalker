@@ -1,0 +1,15 @@
+# Excluded from the Fly build context. Keeps the image small and
+# prevents secrets / dev artifacts from leaking in.
+node_modules
+dist
+tmp
+*.log
+.env
+.env.*
+.DS_Store
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+fly.toml

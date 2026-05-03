@@ -33,7 +33,7 @@ const photoSchema = new Schema<IPhoto>(
     taskType: { type: String, enum: ['daily', 'solo', 'team', null], default: null },
     missionId: { type: String },
     pointsAwarded: { type: Number, default: 0 },
-    location: { type: String, required: true },
+    location: { type: String, default: '' },
     lat: { type: Number, default: 0 },
     lng: { type: Number, default: 0 },
     geo: {

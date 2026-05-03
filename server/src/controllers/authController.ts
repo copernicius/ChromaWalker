@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { Request, Response } from "express";
 import { OAuth2Client, type TokenPayload } from "google-auth-library";
+import mongoose from "mongoose";
 import { ErrCode, fail, ok } from "../lib/response";
 import { signToken } from "../middleware/auth";
 import Photo from "../models/Photo";
@@ -154,5 +155,30 @@ export async function updateMe(req: Request, res: Response): Promise<void> {
 	} catch (err) {
 		console.error("Update profile failed:", err);
 		res.status(500).json({ errno: 500, errmsg: "Update failed" });
+	}
+}
+
+// GET /api/auth/me/unlocked-colors  (auth-gated)
+// Returns the distinct color ids the user has ever uploaded — drives the
+// "Unlocked colors" achievements grid on the profile.
+export async function getMyUnlockedColors(
+	req: Request,
+	res: Response,
+): Promise<void> {
+	try {
+		const userId = req.userId;
+		if (!userId) {
+			fail(res, ErrCode.AUTH_FAILED, "Authentication required");
+			return;
+		}
+		const colors = await Photo.distinct("color", {
+			userId: new mongoose.Types.ObjectId(userId),
+		});
+		ok(res, colors);
+	} catch (err) {
+		console.error("Failed to fetch unlocked colors:", err);
+		res
+			.status(500)
+			.json({ errno: 500, errmsg: "Failed to fetch unlocked colors" });
 	}
 }

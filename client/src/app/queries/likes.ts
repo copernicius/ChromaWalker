@@ -70,6 +70,9 @@ export function useToggleLikeMutation() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['my-likes'] });
       queryClient.invalidateQueries({ queryKey: ['photos'] });
+      // Likes given (heart on someone else's photo) and likes received both
+      // feed achievement progress; safe to invalidate on either direction.
+      queryClient.invalidateQueries({ queryKey: ['my-achievements'] });
     },
   });
 }

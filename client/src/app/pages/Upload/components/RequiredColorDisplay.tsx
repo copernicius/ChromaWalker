@@ -3,7 +3,9 @@ import { Check } from 'lucide-react';
 interface ColorMeta {
   id: string;
   name: string;
+  fancyName?: string;
   hex: string;
+  morandi?: string;
 }
 
 interface Props {
@@ -12,8 +14,8 @@ interface Props {
 }
 
 export function RequiredColorDisplay({ requiredColor, colorPassed }: Props) {
-  const hex = requiredColor?.hex ?? '#ccc';
-  const name = requiredColor?.name ?? 'Any color';
+  const hex = requiredColor?.morandi ?? requiredColor?.hex ?? '#ccc';
+  const name = requiredColor?.fancyName ?? requiredColor?.name ?? 'Any color';
 
   return (
     <div className="mb-4 animate-scale-in">

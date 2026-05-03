@@ -1,5 +1,10 @@
+// Orchestration hook for the upload flow. Composes:
+//   • uploadReducer.ts        — pure state machine (testable, no React deps)
+//   • useSelectedMission.ts   — looks up the active mission across sources
+// and exposes derived UI state (requiredColor / pointsEarned / canSubmit)
+// plus a single bag of action creators.
+
 import { useReducer } from 'react';
-import { useMissionsQuery } from '../../queries';
 import {
   calculatePoints,
   colorMatches,
@@ -10,95 +15,16 @@ import {
   getRequiredColor,
   type TaskType,
 } from './domain';
-
-type Step =
-  | { kind: 'idle' }
-  | { kind: 'photo-selected'; image: string }
-  | { kind: 'color-tested'; image: string; detected: ColorId }
-  | { kind: 'uploaded'; pointsEarned: number };
-
-interface UploadState {
-  step: Step;
-  taskType: TaskType;
-  missionId: string | null;
-  location: string;
-  // Coordinates from LocationPicker. Optional because the user might
-  // type a location string without picking on the map.
-  lat: number | null;
-  lng: number | null;
-  caption: string;
-  missionDialogPendingType: 'solo' | 'team' | null;
-}
-
-type Action =
-  | { type: 'SELECT_PHOTO'; image: string }
-  | { type: 'CLEAR_PHOTO' }
-  | { type: 'COLOR_TEST_RESULT'; detected: ColorId }
-  | { type: 'SELECT_DAILY' }
-  | { type: 'CLEAR_TASK' }
-  | { type: 'OPEN_MISSION_DIALOG'; pendingTaskType: 'solo' | 'team' }
-  | { type: 'CLOSE_MISSION_DIALOG' }
-  | { type: 'SELECT_MISSION'; missionId: string }
-  | { type: 'SET_LOCATION'; value: string; lat: number | null; lng: number | null }
-  | { type: 'SET_CAPTION'; value: string }
-  | { type: 'UPLOAD_SUCCESS'; pointsEarned: number };
-
-const initial: UploadState = {
-  step: { kind: 'idle' },
-  taskType: null,
-  missionId: null,
-  location: '',
-  lat: null,
-  lng: null,
-  caption: '',
-  missionDialogPendingType: null,
-};
-
-function reducer(state: UploadState, action: Action): UploadState {
-  switch (action.type) {
-    case 'SELECT_PHOTO':
-      return { ...state, step: { kind: 'photo-selected', image: action.image } };
-    case 'CLEAR_PHOTO':
-      return { ...state, step: { kind: 'idle' } };
-    case 'COLOR_TEST_RESULT':
-      if (state.step.kind === 'idle' || state.step.kind === 'uploaded') return state;
-      return {
-        ...state,
-        step: { kind: 'color-tested', image: state.step.image, detected: action.detected },
-      };
-    case 'SELECT_DAILY':
-      return { ...state, taskType: 'daily', missionId: null };
-    case 'CLEAR_TASK':
-      return { ...state, taskType: null, missionId: null };
-    case 'OPEN_MISSION_DIALOG':
-      return { ...state, missionDialogPendingType: action.pendingTaskType };
-    case 'CLOSE_MISSION_DIALOG':
-      return { ...state, missionDialogPendingType: null };
-    case 'SELECT_MISSION':
-      if (!state.missionDialogPendingType) return state;
-      return {
-        ...state,
-        taskType: state.missionDialogPendingType,
-        missionId: action.missionId,
-        missionDialogPendingType: null,
-      };
-    case 'SET_LOCATION':
-      return { ...state, location: action.value, lat: action.lat, lng: action.lng };
-    case 'SET_CAPTION':
-      return { ...state, caption: action.value };
-    case 'UPLOAD_SUCCESS':
-      return { ...state, step: { kind: 'uploaded', pointsEarned: action.pointsEarned } };
-  }
-}
+import { initialUploadState, uploadReducer } from './uploadReducer';
+import { useSelectedMission } from './useSelectedMission';
 
 export function useUploadFlow() {
-  const [state, dispatch] = useReducer(reducer, initial);
-  const { data: missions = [] } = useMissionsQuery();
+  const [state, dispatch] = useReducer(uploadReducer, initialUploadState);
+  const { mission, dailyMission } = useSelectedMission(state.missionId);
 
+  // Legacy day-of-week rotation, kept only as a UI fallback for the brief
+  // moment before useDailyMissionQuery resolves.
   const dailyColor = getDailyColor();
-  const mission = state.missionId
-    ? (missions.find((m) => m.id === state.missionId) ?? null)
-    : null;
 
   const requiredColorId = getRequiredColor(state.taskType, mission, dailyColor.id);
   const requiredColor = getColor(requiredColorId);
@@ -115,6 +41,7 @@ export function useUploadFlow() {
   return {
     state,
     dailyColor,
+    dailyMission,
     mission,
     detected,
     detectedColor,
@@ -128,12 +55,15 @@ export function useUploadFlow() {
       clearPhoto: () => dispatch({ type: 'CLEAR_PHOTO' }),
       submitColorTest: (detected: ColorId) =>
         dispatch({ type: 'COLOR_TEST_RESULT', detected }),
-      selectDaily: () => dispatch({ type: 'SELECT_DAILY' }),
+      selectDaily: (missionId: string | null = null) =>
+        dispatch({ type: 'SELECT_DAILY', missionId }),
       clearTask: () => dispatch({ type: 'CLEAR_TASK' }),
       openMissionDialog: (pendingTaskType: 'solo' | 'team') =>
         dispatch({ type: 'OPEN_MISSION_DIALOG', pendingTaskType }),
       closeMissionDialog: () => dispatch({ type: 'CLOSE_MISSION_DIALOG' }),
       selectMission: (missionId: string) => dispatch({ type: 'SELECT_MISSION', missionId }),
+      setMission: (taskType: TaskType, missionId: string | null) =>
+        dispatch({ type: 'SET_MISSION', taskType, missionId }),
       setLocation: (value: string, lat: number | null = null, lng: number | null = null) =>
         dispatch({ type: 'SET_LOCATION', value, lat, lng }),
       setCaption: (value: string) => dispatch({ type: 'SET_CAPTION', value }),

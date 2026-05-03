@@ -274,6 +274,36 @@
     }
   }
 
+  /* Magic-button attract: a halo that radiates outward, looped to draw the
+     eye toward the upload action. Two instances are stacked with a staggered
+     animation-delay for a continuous "ripple" feel. */
+  @keyframes attract-halo {
+    0% {
+      transform: scale(0.85);
+      opacity: 0.55;
+    }
+    80% {
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1.6);
+      opacity: 0;
+    }
+  }
+
+  /* Twinkling sparkle: pops in, glows, fades out. Used on a floating
+     decorative icon next to the upload button. */
+  @keyframes attract-twinkle {
+    0%, 100% {
+      transform: scale(0.4) rotate(0deg);
+      opacity: 0;
+    }
+    40%, 60% {
+      transform: scale(1) rotate(20deg);
+      opacity: 1;
+    }
+  }
+
   /* Sea shimmer: subtle horizontal nudge on the rainbow stripes. */
   @keyframes sea-shimmer {
     0%,
@@ -325,6 +355,23 @@
 
   .animate-sea-shimmer {
     animation: sea-shimmer 2.5s ease-in-out infinite;
+  }
+
+  .animate-attract-halo {
+    animation: attract-halo 2.4s ease-out infinite;
+  }
+
+  .animate-attract-twinkle {
+    animation: attract-twinkle 2.8s ease-in-out infinite;
+  }
+
+  /* Honor user's OS-level "reduce motion" — the halo/twinkle would feel
+     pushy for users with vestibular sensitivity. */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-attract-halo,
+    .animate-attract-twinkle {
+      animation: none;
+    }
   }
 
   .scrollbar-hide {

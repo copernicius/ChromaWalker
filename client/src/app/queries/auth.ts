@@ -1,6 +1,7 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UserProfile } from '../data';
 import { apiCall } from '../lib';
+import { useAppStore } from '../store';
 
 interface UpdateProfileInput {
   username?: string;
@@ -22,5 +23,17 @@ export function useUpdateProfileMutation() {
       // change to keep the gallery in sync.
       queryClient.invalidateQueries({ queryKey: ['photos'] });
     },
+  });
+}
+
+// The set of color ids the current user has ever uploaded — drives the
+// "Unlocked colors" achievements grid on Profile. Skipped when not signed
+// in so it doesn't 401-loop.
+export function useMyUnlockedColorsQuery() {
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated);
+  return useQuery({
+    queryKey: ['my-unlocked-colors'],
+    queryFn: () => apiCall<string[]>('/api/auth/me/unlocked-colors'),
+    enabled: isAuthenticated,
   });
 }

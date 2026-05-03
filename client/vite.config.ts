@@ -58,6 +58,13 @@ export default defineConfig({
         target: "http://localhost:3000",
         changeOrigin: true,
       },
+      // Socket.IO endpoint — needs ws:true so the protocol upgrade goes
+      // through. Long-poll fallback works without it but is much slower.
+      "/socket.io": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 });

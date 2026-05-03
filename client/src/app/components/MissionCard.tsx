@@ -1,55 +1,70 @@
-import { Crown, MapPin, Sparkles, Trophy, Users, Zap } from 'lucide-react';
-import type { Mission } from '../data';
+import { Check, Crown, MapPin, Sparkles, Trophy, Users, Zap } from 'lucide-react';
+import { getPaletteColor, type Mission } from '../data';
 
 interface MissionCardProps {
   mission: Mission;
   onClick?: () => void;
 }
 
-export function MissionCard({ mission, onClick }: MissionCardProps) {
-  const difficultyConfig = {
-    easy: {
-      bgGradient: 'linear-gradient(135deg, #8db3a8 0%, #7a9e93 100%)',
-      bgColor: '#8db3a8',
-      icon: Zap,
-    },
-    medium: {
-      bgGradient: 'linear-gradient(135deg, #d4b598 0%, #c2a688 100%)',
-      bgColor: '#d4b598',
-      icon: Sparkles,
-    },
-    hard: {
-      bgGradient: 'linear-gradient(135deg, #d4a994 0%, #c29a82 100%)',
-      bgColor: '#d4a994',
-      icon: Trophy,
-    },
-    legendary: {
-      bgGradient: 'linear-gradient(135deg, #c0a5d4 0%, #d4a8c2 100%)',
-      bgColor: '#c0a5d4',
-      icon: Crown,
-    },
-  };
+// Difficulty no longer drives the card color (which now reflects the
+// mission's *target* color so the card is visually self-explanatory). It
+// still picks the small icon next to "Easy / Medium / Hard / Legendary".
+const difficultyIcon = {
+  easy: Zap,
+  medium: Sparkles,
+  hard: Trophy,
+  legendary: Crown,
+} as const;
 
-  const config = difficultyConfig[mission.difficulty];
-  const DifficultyIcon = config.icon;
+// Rainbow missions don't have a single palette color; show a band of
+// gradient stops so the card still reads as "any color counts."
+const RAINBOW_BG =
+  'linear-gradient(135deg, #B86060 0%, #C08762 25%, #B8A552 50%, #7E9683 70%, #5F7B96 85%, #9C7E94 100%)';
+
+export function MissionCard({ mission, onClick }: MissionCardProps) {
+  const DifficultyIcon = difficultyIcon[mission.difficulty];
+
+  // Background = mission's target color, sourced from the gallery palette
+  // (Morandi tone). Falls back to a neutral gray if the color id is unknown.
+  const paletteColor = getPaletteColor(mission.color);
+  const isRainbow = mission.color === 'rainbow';
+  const bg = isRainbow ? RAINBOW_BG : (paletteColor?.morandi ?? '#9E9E9E');
+  const decoColor = isRainbow ? '#9C7E94' : (paletteColor?.morandi ?? '#9E9E9E');
 
   const progressPercentage = mission.total ? ((mission.progress ?? 0) / mission.total) * 100 : 0;
+  const isCompleted = mission.completed === true;
+  // Literal palette name (e.g. "Red"), capitalized — fancy names ("Sunset
+  // Coral") read as poetic but make the actionable target less obvious.
+  const colorLabel = isRainbow
+    ? 'Any color'
+    : (paletteColor?.name ?? mission.color);
 
   return (
     <button
       type="button"
-      className="rounded-3xl p-6 shadow-sm text-white relative overflow-hidden cursor-pointer hover:shadow-lg hover:scale-102 transition-all w-full text-left"
-      style={{ background: config.bgGradient }}
+      disabled={isCompleted}
+      className={`rounded-3xl p-6 shadow-sm text-white relative overflow-hidden w-full text-left transition-all ${
+        isCompleted
+          ? 'opacity-60 cursor-not-allowed'
+          : 'cursor-pointer hover:shadow-lg hover:scale-102'
+      }`}
+      style={{ background: bg }}
       onClick={onClick}
     >
+      {isCompleted && (
+        <div className="absolute top-3 right-3 z-20 bg-white/25 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-semibold flex items-center gap-1 shadow-sm">
+          <Check className="w-3 h-3" strokeWidth={3} />
+          Completed
+        </div>
+      )}
       {/* Decorative background circles */}
       <div
         className="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-20 animate-pulse"
-        style={{ background: config.bgColor }}
+        style={{ background: decoColor }}
       />
       <div
         className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full opacity-20 animate-pulse delay-75"
-        style={{ background: config.bgColor }}
+        style={{ background: decoColor }}
       />
 
       {/* Content */}
@@ -70,7 +85,16 @@ export function MissionCard({ mission, onClick }: MissionCardProps) {
         </div>
 
         {/* Mission Details */}
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center flex-wrap gap-2 mb-4">
+          {/* Target color chip — high-contrast pill so the actionable
+              instruction ("find Red") jumps off the card. */}
+          <span className="inline-flex items-center gap-1.5 bg-white/25 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-bold shadow-sm">
+            <span
+              className="w-3 h-3 rounded-full bg-white"
+              aria-hidden
+            />
+            Find {colorLabel}
+          </span>
           {mission.location && (
             <div className="flex items-center gap-1.5 text-sm opacity-90">
               <MapPin className="w-4 h-4" />
@@ -101,13 +125,6 @@ export function MissionCard({ mission, onClick }: MissionCardProps) {
           </div>
         )}
 
-        {/* Action */}
-        <button
-          type="button"
-          className="inline-block bg-white/20 backdrop-blur-sm hover:bg-white/30 px-6 py-2.5 rounded-full font-semibold text-sm transition-all shadow-md hover:scale-105 active:scale-95"
-        >
-          {mission.completed ? 'Completed' : 'Start Mission'}
-        </button>
       </div>
     </button>
   );

@@ -4,7 +4,9 @@ import type { TaskType } from '../domain';
 interface ColorMeta {
   id: string;
   name: string;
+  fancyName?: string;
   hex: string;
+  morandi?: string;
 }
 
 interface Props {
@@ -28,9 +30,14 @@ export function UploadSuccessView({ detectedColor, taskType, pointsEarned }: Pro
           >
             <div
               className="w-6 h-6 rounded-full border-2 border-white shadow-md"
-              style={{ backgroundColor: detectedColor.hex }}
+              style={{ backgroundColor: detectedColor.morandi ?? detectedColor.hex }}
             />
-            <p className="text-sm text-gray-600">{detectedColor.name} detected</p>
+            <p className="text-sm text-gray-600">
+              {detectedColor.fancyName && detectedColor.fancyName !== detectedColor.name
+                ? `${detectedColor.fancyName} (${detectedColor.name})`
+                : detectedColor.name}{' '}
+              detected
+            </p>
           </div>
         )}
         {taskType && (

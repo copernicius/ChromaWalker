@@ -2,7 +2,12 @@ import { randomUUID } from 'crypto';
 import path from 'path';
 import express from 'express';
 import multer from 'multer';
-import { getMe, googleLogin, updateMe } from '../controllers/authController';
+import {
+  getMe,
+  getMyUnlockedColors,
+  googleLogin,
+  updateMe,
+} from '../controllers/authController';
 import { auth } from '../middleware/auth';
 
 const router = express.Router();
@@ -30,5 +35,6 @@ const upload = multer({
 router.post('/google', googleLogin);
 router.get('/me', auth, getMe);
 router.patch('/me', auth, upload.single('avatar'), updateMe);
+router.get('/me/unlocked-colors', auth, getMyUnlockedColors);
 
 export default router;

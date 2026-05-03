@@ -1,18 +1,16 @@
 import { Clock, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { useParams } from "react-router";
-import { Header, PhotoCard, PhotoDetail } from "../components";
+import { Header, PhotoDetail, WaterfallGrid } from "../components";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui";
-import { RAINBOW_COLORS, RARE_COLORS } from "../data";
+import { getPaletteColor } from "../data";
 import { usePhotosQuery } from "../queries";
 
 export function ColorGallery() {
   const { colorId } = useParams();
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const { data: allPhotos = [] } = usePhotosQuery();
-  const color = [...RAINBOW_COLORS, ...RARE_COLORS].find(
-    (c) => c.id === colorId,
-  );
+  const color = getPaletteColor(colorId);
   const photos = allPhotos.filter((p) => p.color === colorId);
 
   const selectedPhotoData = selectedPhoto
@@ -48,24 +46,19 @@ export function ColorGallery() {
         {/* Color Header */}
         <div
           className="rounded-3xl p-8 mb-6 text-white shadow-md relative overflow-hidden"
-          style={{
-            background: `linear-gradient(135deg, ${color.hex} 0%, ${color.hex}dd 100%)`,
-          }}
+          style={{ backgroundColor: color.morandi }}
         >
           <div className="relative z-10">
-            <div className="mb-2">
-              <span className="text-xs uppercase tracking-wide opacity-90">
-                {color.category}
-              </span>
-            </div>
-            <h1 className="text-4xl font-bold mb-2">{color.name}</h1>
+            <h1 className="text-4xl font-bold mb-2">
+              {color.fancyName ?? color.name}
+            </h1>
             <p className="text-lg opacity-90">
               {photos.length} photos captured
             </p>
           </div>
           <div
             className="absolute -bottom-8 -right-8 w-32 h-32 rounded-full opacity-20"
-            style={{ background: color.hex }}
+            style={{ background: color.morandi }}
           />
         </div>
 
@@ -90,21 +83,15 @@ export function ColorGallery() {
 
           <TabsContent value="popular">
             {sortedByPopular.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4">
-                {sortedByPopular.map((photo) => (
-                  <div key={photo.id}>
-                    <PhotoCard
-                      photo={photo}
-                      onClick={() => setSelectedPhoto(photo.id)}
-                    />
-                  </div>
-                ))}
-              </div>
+              <WaterfallGrid
+                photos={sortedByPopular}
+                onSelect={setSelectedPhoto}
+              />
             ) : (
               <div className="text-center py-16 bg-white rounded-2xl">
                 <p className="text-gray-600">
                   No photos yet. Be the first to capture{" "}
-                  {color.name.toLowerCase()}!
+                  {(color.fancyName ?? color.name).toLowerCase()}!
                 </p>
               </div>
             )}
@@ -112,21 +99,15 @@ export function ColorGallery() {
 
           <TabsContent value="recent">
             {sortedByRecent.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4">
-                {sortedByRecent.map((photo) => (
-                  <div key={photo.id}>
-                    <PhotoCard
-                      photo={photo}
-                      onClick={() => setSelectedPhoto(photo.id)}
-                    />
-                  </div>
-                ))}
-              </div>
+              <WaterfallGrid
+                photos={sortedByRecent}
+                onSelect={setSelectedPhoto}
+              />
             ) : (
               <div className="text-center py-16 bg-white rounded-2xl">
                 <p className="text-gray-600">
                   No photos yet. Be the first to capture{" "}
-                  {color.name.toLowerCase()}!
+                  {(color.fancyName ?? color.name).toLowerCase()}!
                 </p>
               </div>
             )}
