@@ -1,0 +1,4 @@
+# Cloudflare Pages SPA fallback. Any unmatched path falls through to
+# index.html with a 200 (so React Router can pick it up). Without this,
+# direct loads / refreshes on /missions, /profile, etc. would 404.
+/*  /index.html  200

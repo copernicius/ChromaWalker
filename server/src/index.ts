@@ -2,7 +2,6 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import http from 'http';
-import path from 'path';
 import mongoose from 'mongoose';
 
 import achievementsRoutes from './routes/achievements';
@@ -19,11 +18,24 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://mongodb:27017/chromawalk';
 
-app.use(cors());
+// Allow the known frontend origin(s). Set CLIENT_ORIGIN via Fly secret to
+// the deployed Cloudflare Pages URL (comma-separate to allow more than one,
+// e.g. preview deploys). When unset (local dev), allow any origin so
+// `vite` on whichever port can hit the API.
+const allowedOrigins = (process.env.CLIENT_ORIGIN ?? '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+app.use(
+  cors({
+    origin: allowedOrigins.length === 0 ? true : allowedOrigins,
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: '10mb' }));
 
-// Serve uploaded images from the tmp directory (one level above src/dist).
-app.use('/tmp', express.static(path.join(__dirname, '..', 'tmp')));
+// Uploaded images live in Cloudflare R2 — see lib/storage.ts. Browsers
+// fetch them directly from R2_PUBLIC_URL, no proxy needed.
 
 app.use('/api/auth', authRoutes);
 app.use('/api/photos', photoRoutes);

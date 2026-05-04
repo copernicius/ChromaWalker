@@ -37,10 +37,9 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
 
-# Uploads write to /app/tmp via multer. Backed by a Fly Volume so files
-# survive deploys/restarts (see [mounts] in fly.toml). Pre-create the
-# directory and chown so the unprivileged `node` user can write to it.
-RUN mkdir -p /app/tmp && chown -R node:node /app
+# Uploads stream straight to Cloudflare R2 — no local writes — so we just
+# need ownership for the unprivileged `node` user.
+RUN chown -R node:node /app
 USER node
 
 EXPOSE 8080

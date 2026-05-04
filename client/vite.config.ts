@@ -4,6 +4,19 @@ import path from "path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
 
+// HTTPS is only used by `vite` (dev server). Production builds (vite build)
+// don't need it, and the PEM files aren't present on CI runners like
+// Cloudflare Pages — so we only enable HTTPS when both files exist.
+const KEY_PATH = "./localhost-key.pem";
+const CERT_PATH = "./localhost.pem";
+const httpsConfig =
+  fs.existsSync(KEY_PATH) && fs.existsSync(CERT_PATH)
+    ? {
+        key: fs.readFileSync(KEY_PATH),
+        cert: fs.readFileSync(CERT_PATH),
+      }
+    : undefined;
+
 export default defineConfig({
   plugins: [
     // The React and Tailwind plugins are both required for Make, even if
@@ -36,25 +49,17 @@ export default defineConfig({
     headers: {
       "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
     },
-    https: {
-      // 1. brew install mkcert nss
-      // 2. mkcert -install
-      // 3. cd ROOT_PATH/client
-      // 4. mkcert localhost
-      // The *.pem files are ignored in .gitignore, you should have your own copy when developing.
-      key: fs.readFileSync("./localhost-key.pem"),
-      cert: fs.readFileSync("./localhost.pem"),
-    },
+    // HTTPS is enabled only when local mkcert PEM files are present:
+    //   1. brew install mkcert nss
+    //   2. mkcert -install
+    //   3. cd ROOT_PATH/client && mkcert localhost
+    // The *.pem files are gitignored. Without them, dev runs over HTTP.
+    https: httpsConfig,
     proxy: {
       "/api": {
         // Inside docker-compose, `server` resolves to the server container.
         // When running the client on the host, change this to http://localhost:3000.
         // target: "http://server:3000",
-        target: "http://localhost:3000",
-        changeOrigin: true,
-      },
-      // Uploaded images are served by the server from server/tmp at /tmp.
-      "/tmp": {
         target: "http://localhost:3000",
         changeOrigin: true,
       },

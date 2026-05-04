@@ -1,10 +1,9 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import type { Request, Response } from "express";
 import { OAuth2Client, type TokenPayload } from "google-auth-library";
 import mongoose from "mongoose";
 import { ErrCode, fail, ok } from "../lib/response";
 import { signToken } from "../middleware/auth";
+import { r2DeleteObject, r2PublicUrl } from "../lib/storage";
 import Photo from "../models/Photo";
 import User from "../models/User";
 
@@ -121,14 +120,16 @@ export async function updateMe(req: Request, res: Response): Promise<void> {
 		}
 
 		if (req.file) {
-			// Best-effort: delete the previous avatar file if it lives in our tmp
-			// directory. Google CDN URLs are left alone.
-			if (user.avatarUrl?.startsWith("/tmp/")) {
-				const oldName = user.avatarUrl.replace(/^\/tmp\//, "");
-				const oldPath = path.join(__dirname, "..", "..", "tmp", oldName);
-				fs.unlink(oldPath).catch(() => {});
+			// Best-effort cleanup of the previous avatar in R2. r2DeleteObject
+			// is a no-op for external URLs (Google CDN, pre-migration paths).
+			if (user.avatarUrl) void r2DeleteObject(user.avatarUrl);
+
+			const fileWithKey = req.file as Express.Multer.File & { key?: string };
+			if (!fileWithKey.key) {
+				fail(res, ErrCode.INVALID_PARAM, "Upload did not return a storage key");
+				return;
 			}
-			user.avatarUrl = `/tmp/${req.file.filename}`;
+			user.avatarUrl = r2PublicUrl(fileWithKey.key);
 			changed = true;
 		}
 

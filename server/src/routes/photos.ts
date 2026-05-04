@@ -1,7 +1,5 @@
 import express from 'express';
 import multer from 'multer';
-import path from 'path';
-import { randomUUID } from 'crypto';
 import { bookmarkPhoto, getMyBookmarks, unbookmarkPhoto } from '../controllers/bookmarkController';
 import { createComment, getComments } from '../controllers/commentController';
 import { getMyLikes, likePhoto, unlikePhoto } from '../controllers/likeController';
@@ -13,19 +11,15 @@ import {
   uploadPhoto,
 } from '../controllers/photoController';
 import { auth } from '../middleware/auth';
+import { r2Storage } from '../lib/storage';
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: path.join(__dirname, '..', '..', 'tmp'),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${randomUUID()}${ext}`);
-  },
-});
-
+// Photos stream straight to R2 under photos/<uuid><ext>. The handler reads
+// the resulting public URL from req.file (multer-s3 attaches `key` and
+// `location` fields).
 const upload = multer({
-  storage,
+  storage: r2Storage('photos/'),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {

@@ -12,14 +12,19 @@ import { useAppStore } from '../store';
 let socket: Socket | null = null;
 let lastToken: string | null = null;
 
+// Same env var as the REST client — when set, the socket connects to the
+// remote backend instead of the page origin. Required when the client is
+// served from a different host (e.g. Cloudflare Pages → Fly).
+const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
+
 function buildSocket(token: string): Socket {
-  // Empty URL = connect to the page origin. Vite dev proxies /socket.io to
-  // the server; in prod the same origin serves both.
-  return ioClient({
+  const opts = {
     auth: { token },
     autoConnect: true,
     transports: ['websocket', 'polling'],
-  });
+  };
+  // Empty URL = connect to the page origin (local dev, Vite proxies it).
+  return SOCKET_URL ? ioClient(SOCKET_URL, opts) : ioClient(opts);
 }
 
 export function getSocket(): Socket | null {

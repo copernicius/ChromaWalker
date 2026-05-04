@@ -1,5 +1,3 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import type { Request, Response } from "express";
 import { PALETTE_IDS } from "../lib/palette";
 import { ErrCode, fail, ok } from "../lib/response";
@@ -7,6 +5,7 @@ import mongoose from "mongoose";
 import { evaluateCatalogUpload } from "../lib/missionProgress";
 import { findCatalogMission } from "../lib/missions";
 import { emitToTeam } from "../lib/realtime";
+import { r2DeleteObject, r2PublicUrl } from "../lib/storage";
 import { validateContribution } from "../lib/taskValidation";
 import Bookmark from "../models/Bookmark";
 import Comment from "../models/Comment";
@@ -158,9 +157,21 @@ export async function uploadPhoto(req: Request, res: Response): Promise<void> {
 			}
 		}
 
+		// multer-s3 attaches `key` to req.file. We construct the browser-facing
+		// URL from R2_PUBLIC_URL — multer-s3's `location` field points at the
+		// management endpoint (private), not the R2.dev / custom domain URL
+		// that the browser actually needs.
+		const fileWithKey = req.file as Express.Multer.File & { key?: string };
+		const objectKey = fileWithKey.key;
+		if (!objectKey) {
+			fail(res, ErrCode.INVALID_PARAM, "Upload did not return a storage key");
+			return;
+		}
+		const imageUrl = r2PublicUrl(objectKey);
+
 		const photo = await Photo.create({
 			userId: user._id,
-			imageUrl: `/tmp/${req.file.filename}`,
+			imageUrl,
 			color,
 			taskType,
 			missionId: missionId || undefined,
@@ -327,17 +338,11 @@ export async function deletePhoto(req: Request, res: Response): Promise<void> {
 			return;
 		}
 
-		// Best-effort file cleanup on disk. We log but don't fail the request if
-		// the file is already missing — the DB row is the source of truth.
-		if (photo.imageUrl.startsWith("/tmp/")) {
-			const filename = photo.imageUrl.replace(/^\/tmp\//, "");
-			const filePath = path.join(__dirname, "..", "..", "tmp", filename);
-			fs.unlink(filePath).catch((err) => {
-				if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-					console.warn("Failed to remove tmp file:", filePath, err);
-				}
-			});
-		}
+		// Best-effort R2 cleanup. We log but don't fail the request — the DB
+		// row is the source of truth, and orphans can be swept by an R2
+		// lifecycle rule. r2DeleteObject is a no-op for non-R2 URLs (e.g.
+		// pre-migration /tmp paths or external CDNs).
+		void r2DeleteObject(photo.imageUrl);
 
 		// Reverse the counter increments from upload.
 		const user = await User.findById(userId);

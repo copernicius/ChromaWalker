@@ -1,5 +1,3 @@
-import { randomUUID } from 'crypto';
-import path from 'path';
 import express from 'express';
 import multer from 'multer';
 import {
@@ -9,19 +7,13 @@ import {
   updateMe,
 } from '../controllers/authController';
 import { auth } from '../middleware/auth';
+import { r2Storage } from '../lib/storage';
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: path.join(__dirname, '..', '..', 'tmp'),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `avatar-${randomUUID()}${ext}`);
-  },
-});
-
+// Avatars stream to R2 under avatars/<uuid><ext>.
 const upload = multer({
-  storage,
+  storage: r2Storage('avatars/'),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {

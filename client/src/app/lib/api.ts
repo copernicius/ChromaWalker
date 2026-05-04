@@ -1,6 +1,21 @@
 import { useAppStore } from '../store';
 import { queryClient } from './queryClient';
 
+// Base URL of the backend. Empty string in dev (Vite proxies `/api/*` to
+// localhost:3000) or set via VITE_API_BASE_URL in production builds (e.g.
+// `https://chromawalk-server.fly.dev`). Trailing slash is stripped so we
+// always emit `${BASE}/api/...` cleanly.
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
+
+function resolveUrl(input: RequestInfo): RequestInfo {
+  if (typeof input !== 'string') return input;
+  if (!API_BASE_URL) return input;
+  // Only prepend for relative paths — leave absolute URLs untouched so
+  // callers can still hit third-party services if needed.
+  if (input.startsWith('/')) return `${API_BASE_URL}${input}`;
+  return input;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -19,7 +34,7 @@ export async function apiFetch(input: RequestInfo, init: RequestInit = {}): Prom
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const res = await fetch(input, { ...init, headers });
+  const res = await fetch(resolveUrl(input), { ...init, headers });
 
   if (res.status === 401) {
     useAppStore.getState().logout();
