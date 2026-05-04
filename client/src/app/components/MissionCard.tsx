@@ -17,9 +17,11 @@ const difficultyIcon = {
 } as const;
 
 // Rainbow missions don't have a single palette color; show a band of
-// gradient stops so the card still reads as "any color counts."
+// gradient stops so the card still reads as "any color counts." Stops are
+// the morandi values from data/colors.ts (red → orange → yellow → green
+// → blue → violet) — keep in sync if the palette changes.
 const RAINBOW_BG =
-  'linear-gradient(135deg, #B86060 0%, #C08762 25%, #B8A552 50%, #7E9683 70%, #5F7B96 85%, #9C7E94 100%)';
+  'linear-gradient(135deg, #FF9BA0 0%, #E18430 25%, #FCBB67 50%, #7C9C7A 70%, #6E8FAA 85%, #B59CB0 100%)';
 
 export function MissionCard({ mission, onClick }: MissionCardProps) {
   const DifficultyIcon = difficultyIcon[mission.difficulty];
@@ -29,7 +31,7 @@ export function MissionCard({ mission, onClick }: MissionCardProps) {
   const paletteColor = getPaletteColor(mission.color);
   const isRainbow = mission.color === 'rainbow';
   const bg = isRainbow ? RAINBOW_BG : (paletteColor?.morandi ?? '#9E9E9E');
-  const decoColor = isRainbow ? '#9C7E94' : (paletteColor?.morandi ?? '#9E9E9E');
+  const decoColor = isRainbow ? '#B59CB0' : (paletteColor?.morandi ?? '#9E9E9E');
 
   const progressPercentage = mission.total ? ((mission.progress ?? 0) / mission.total) * 100 : 0;
   const isCompleted = mission.completed === true;

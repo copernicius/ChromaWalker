@@ -6,6 +6,8 @@ import {
   useToggleBookmarkMutation,
   useToggleLikeMutation,
 } from '../queries';
+import { PhotoImage } from './PhotoImage';
+import { UserAvatar } from './UserAvatar';
 
 interface PhotoCardProps {
   photo: Photo;
@@ -50,16 +52,11 @@ export function PhotoCard({ photo, onClick, onDelete, aspect = 'square' }: Photo
       <div
         className={`relative bg-gray-100 ${isNatural ? '' : 'aspect-square'}`}
       >
-        <img
+        <PhotoImage
           src={photo.imageUrl}
           alt={`${photo.color} capture at ${photo.location}`}
-          loading="lazy"
-          decoding="async"
-          className={
-            isNatural
-              ? 'w-full h-auto block'
-              : 'w-full h-full object-cover'
-          }
+          colorId={photo.color}
+          fit={isNatural ? 'natural' : 'cover'}
         />
         {onDelete && (
           <button
@@ -80,20 +77,7 @@ export function PhotoCard({ photo, onClick, onDelete, aspect = 'square' }: Photo
         {/* Username and Location - Stack on mobile */}
         <div className="mb-2">
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-br from-[#FF8A65] to-[#9575CD] flex items-center justify-center text-white text-xs font-bold">
-              {photo.avatarUrl ? (
-                <img
-                  src={photo.avatarUrl}
-                  alt={photo.username}
-                  referrerPolicy="no-referrer"
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                photo.username.charAt(0).toUpperCase()
-              )}
-            </div>
+            <UserAvatar url={photo.avatarUrl} name={photo.username} size={28} />
             <span className="text-sm font-medium text-[#2D2520]">{photo.username}</span>
           </div>
           {/* Reserve one line of vertical space even when location is empty

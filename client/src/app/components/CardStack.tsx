@@ -2,6 +2,8 @@ import { Heart, Info, MessageCircle, Star, X } from 'lucide-react';
 import { AnimatePresence, type PanInfo, motion } from 'motion/react';
 import { useState } from 'react';
 import { getPaletteColor, type Photo } from '../data';
+import { PhotoImage } from './PhotoImage';
+import { UserAvatar } from './UserAvatar';
 
 interface CardStackProps {
   photos: Photo[];
@@ -84,10 +86,11 @@ export function CardStack({ photos }: CardStackProps) {
               >
                 {/* Photo */}
                 <div className="relative aspect-[4/5] overflow-hidden">
-                  <img
+                  <PhotoImage
                     src={photo.imageUrl}
                     alt={photo.location}
-                    className="w-full h-full object-cover"
+                    colorId={photo.color}
+                    fit="cover"
                   />
 
                   {/* Gradient Overlay */}
@@ -104,18 +107,7 @@ export function CardStack({ photos }: CardStackProps) {
                   {/* Photo Info */}
                   <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-[#FF8A65] to-[#9575CD] flex items-center justify-center text-white font-bold">
-                        {photo.avatarUrl ? (
-                          <img
-                            src={photo.avatarUrl}
-                            alt={photo.username}
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          photo.username.charAt(0).toUpperCase()
-                        )}
-                      </div>
+                      <UserAvatar url={photo.avatarUrl} name={photo.username} size={48} />
                       <div>
                         <p className="font-bold text-lg">{photo.username}</p>
                         <p className="text-sm opacity-90 flex items-center gap-1">

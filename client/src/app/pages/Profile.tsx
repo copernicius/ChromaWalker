@@ -2,7 +2,7 @@ import { Award, Camera, Heart, Lock, LogIn, LogOut, MapPin, Settings, Star, Tras
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { Header, PhotoDetail, WaterfallGrid } from '../components';
+import { Header, PhotoDetail, UserAvatar, WaterfallGrid } from '../components';
 import {
   Button,
   Dialog,
@@ -246,18 +246,13 @@ export function Profile() {
         <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
-                {user.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt={user.username}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  user.username[0].toUpperCase()
-                )}
-              </div>
+              <UserAvatar
+                url={user.avatarUrl}
+                name={user.username}
+                size={80}
+                fontClass="text-2xl"
+                gradientClass="from-blue-400 to-purple-500"
+              />
               <div>
                 <h2 className="text-2xl font-bold">{user.username}</h2>
                 <p className="text-gray-600">
@@ -566,24 +561,13 @@ export function Profile() {
                 Profile Image
               </Label>
               <div className="flex items-center gap-4">
-                <div className="w-20 h-20 aspect-square shrink-0 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 grid place-items-center text-white text-2xl font-bold overflow-hidden">
-                  {profileImagePreview ? (
-                    <img
-                      src={profileImagePreview}
-                      alt="Profile"
-                      className="block w-full h-full object-cover"
-                    />
-                  ) : user.avatarUrl ? (
-                    <img
-                      src={user.avatarUrl}
-                      alt={user.username}
-                      referrerPolicy="no-referrer"
-                      className="block w-full h-full object-cover"
-                    />
-                  ) : (
-                    user.username[0].toUpperCase()
-                  )}
-                </div>
+                <UserAvatar
+                  url={profileImagePreview ?? user.avatarUrl}
+                  name={user.username}
+                  size={80}
+                  fontClass="text-2xl"
+                  gradientClass="from-blue-400 to-purple-500"
+                />
                 <div>
                   <label
                     htmlFor="profile-image"

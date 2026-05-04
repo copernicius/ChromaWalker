@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UserProfile } from '../data';
-import { apiCall } from '../lib';
+import { apiCall, compressImage } from '../lib';
 import { useAppStore } from '../store';
 
 interface UpdateProfileInput {
@@ -14,7 +14,12 @@ export function useUpdateProfileMutation() {
     mutationFn: async (input: UpdateProfileInput): Promise<UserProfile> => {
       const form = new FormData();
       if (input.username !== undefined) form.append('username', input.username);
-      if (input.avatarFile) form.append('avatar', input.avatarFile);
+      if (input.avatarFile) {
+        // Re-encode under 500 KB before upload — same pipeline photos use.
+        const compressed = await compressImage(input.avatarFile);
+        const file = new File([compressed], 'avatar.jpg', { type: 'image/jpeg' });
+        form.append('avatar', file);
+      }
       // Don't set Content-Type — browser sets multipart boundary automatically.
       return apiCall<UserProfile>('/api/auth/me', { method: 'PATCH', body: form });
     },

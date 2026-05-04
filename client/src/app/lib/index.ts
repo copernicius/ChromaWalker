@@ -1,4 +1,5 @@
-export { ApiError, apiFetch, apiCall } from './api';
+export { ApiError, apiFetch, apiCall, friendlyErrorMessage } from './api';
+export { blobToDataUrl, compressImage, type CompressOptions } from './imageCompress';
 export { queryClient } from './queryClient';
 export {
   type MotionPermission,

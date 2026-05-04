@@ -3,7 +3,9 @@ import { useState } from 'react';
 import { getPaletteColor } from '../data';
 import { useCommentsQuery, useMyLikesQuery, useToggleLikeMutation } from '../queries';
 import { CommentThread } from './CommentThread';
+import { PhotoImage } from './PhotoImage';
 import { PhotoShareDialog } from './PhotoShareDialog';
+import { UserAvatar } from './UserAvatar';
 
 interface Photo {
   id: string;
@@ -53,11 +55,12 @@ export function PhotoDetail({ photo, onClose }: PhotoDetailProps) {
         onKeyDown={(e) => e.stopPropagation()}
       >
         {/* Left Side - Photo */}
-        <div className="md:w-2/3 bg-[#2D2520] flex items-center justify-center relative">
-          <img
+        <div className="md:w-2/3 bg-[#2D2520] flex items-center justify-center relative max-h-[60vh] md:max-h-full">
+          <PhotoImage
             src={photo.imageUrl}
             alt={photo.caption || photo.location}
-            className="w-full h-full object-contain max-h-[60vh] md:max-h-full"
+            colorId={photo.color}
+            fit="contain"
           />
         </div>
 
@@ -67,18 +70,7 @@ export function PhotoDetail({ photo, onClose }: PhotoDetailProps) {
           <div className="p-6 border-b border-gray-200 bg-white">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-[#FF8A65] to-[#9575CD] flex items-center justify-center text-white font-bold text-lg">
-                  {photo.avatarUrl ? (
-                    <img
-                      src={photo.avatarUrl}
-                      alt={photo.username}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    photo.username.charAt(0).toUpperCase()
-                  )}
-                </div>
+                <UserAvatar url={photo.avatarUrl} name={photo.username} size={48} fontClass="text-lg" />
                 <div>
                   <p className="font-bold text-[#2D2520]">{photo.username}</p>
                   <p className="text-sm text-gray-600">{photo.userRole || 'Photographer'}</p>

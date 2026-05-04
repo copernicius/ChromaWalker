@@ -1,7 +1,7 @@
 import { Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { DailyMissionCard, PhotoCard, PhotoDetail } from '../components';
+import { DailyMissionCard, PhotoCard, PhotoDetail, UserAvatar } from '../components';
 import { Progress } from '../components/ui';
 import { usePhotosQuery, useUserLevel } from '../queries';
 import { useAppStore } from '../store';
@@ -34,20 +34,9 @@ export function Home() {
             </div>
             <Link
               to="/profile"
-              className="w-12 h-12 rounded-full overflow-hidden shadow-md hover:scale-110 transition-transform active:scale-95"
+              className="rounded-full overflow-hidden shadow-md hover:scale-110 transition-transform active:scale-95"
             >
-              {user.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt={user.username}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-[#FF8A65] to-[#9575CD] flex items-center justify-center text-white font-semibold">
-                  {user.username[0].toUpperCase()}
-                </div>
-              )}
+              <UserAvatar url={user.avatarUrl} name={user.username} size={48} />
             </Link>
           </div>
           <p className="text-gray-600">Explore colors around you</p>

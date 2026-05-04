@@ -18,17 +18,49 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://mongodb:27017/chromawalk';
 
-// Allow the known frontend origin(s). Set CLIENT_ORIGIN via Fly secret to
-// the deployed Cloudflare Pages URL (comma-separate to allow more than one,
-// e.g. preview deploys). When unset (local dev), allow any origin so
-// `vite` on whichever port can hit the API.
-const allowedOrigins = (process.env.CLIENT_ORIGIN ?? '')
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
+// CORS allowlist. CLIENT_ORIGIN is a comma-separated list where each entry
+// is either:
+//   • A full origin to match exactly:   https://chromawalker.pages.dev
+//   • A wildcard hostname (https only): *.chromawalker.pages.dev
+//     — matches the apex (chromawalker.pages.dev) AND any subdomain
+//       (e.g. <branch>.chromawalker.pages.dev for Pages preview deploys).
+// When unset (local dev) every origin is allowed so `vite` on any port
+// can hit the API.
+type OriginMatcher = (origin: string) => boolean;
+function compileOriginMatchers(spec: string): OriginMatcher[] {
+  return spec
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map<OriginMatcher>((pattern) => {
+      if (pattern.startsWith('*.')) {
+        const baseHost = pattern.slice(2);
+        return (origin) => {
+          try {
+            const url = new URL(origin);
+            if (url.protocol !== 'https:') return false;
+            return url.hostname === baseHost || url.hostname.endsWith('.' + baseHost);
+          } catch {
+            return false;
+          }
+        };
+      }
+      return (origin) => origin === pattern;
+    });
+}
+const originMatchers = compileOriginMatchers(process.env.CLIENT_ORIGIN ?? '');
 app.use(
   cors({
-    origin: allowedOrigins.length === 0 ? true : allowedOrigins,
+    origin:
+      originMatchers.length === 0
+        ? true
+        : (origin, cb) => {
+            // Requests without an Origin header (curl, server-to-server,
+            // Fly health checks) aren't subject to CORS — let them through.
+            if (!origin) return cb(null, true);
+            if (originMatchers.some((m) => m(origin))) return cb(null, true);
+            cb(new Error(`Origin ${origin} not allowed by CORS`));
+          },
     credentials: true,
   }),
 );

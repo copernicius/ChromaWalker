@@ -1,10 +1,11 @@
 import { Sparkles, Target } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { Header, LocationPicker } from '../../components';
 import { Button } from '../../components/ui';
 import { getPaletteColor } from '../../data';
+import { blobToDataUrl, compressImage } from '../../lib';
 import { useMyMissionProgressQuery } from '../../queries';
 import { ColorTestPanel } from './components/ColorTestPanel';
 import { MissionPickerDialog } from './components/MissionPickerDialog';
@@ -66,9 +67,29 @@ export function Upload() {
     return () => clearTimeout(id);
   }, [state.step.kind, navigate]);
 
-  const handleSelectPhoto = (img: string) => {
-    actions.selectPhoto(img);
+  // Brief flag for the "Preparing image…" hint while compression runs.
+  // Re-encoding a 12MP photo on a phone is ~150–400ms; we hide PhotoCapture
+  // during that window so the user doesn't try to interact with stale UI.
+  const [preparing, setPreparing] = useState(false);
+
+  // Compress on intake so the same compressed bytes feed BOTH the
+  // /api/detect-color request and the eventual /api/photos/upload — saves
+  // one ~3 MB roundtrip on the test step. compressImage no-ops if the
+  // source is already under the target size.
+  const handleSelectPhoto = async (img: string) => {
     detectMutation.reset();
+    setPreparing(true);
+    try {
+      const original = await fetch(img).then((r) => r.blob());
+      const compressed = await compressImage(original);
+      const dataUrl = await blobToDataUrl(compressed);
+      actions.selectPhoto(dataUrl);
+    } catch (err) {
+      console.warn('Compression failed; using original:', err);
+      actions.selectPhoto(img);
+    } finally {
+      setPreparing(false);
+    }
   };
 
   const handleClearPhoto = () => {
@@ -148,7 +169,7 @@ export function Upload() {
           const colorMeta = getPaletteColor(mission.color);
           const isRainbow = mission.color === 'rainbow';
           const swatch = isRainbow
-            ? 'linear-gradient(135deg, #B86060 0%, #C08762 33%, #7E9683 66%, #5F7B96 100%)'
+            ? 'linear-gradient(135deg, #FF9BA0 0%, #E18430 33%, #7C9C7A 66%, #6E8FAA 100%)'
             : (colorMeta?.morandi ?? '#9E9E9E');
           // Use the literal palette name (e.g. "Red") so the instruction is
           // unambiguous when the user is actually hunting for the color.
@@ -194,6 +215,11 @@ export function Upload() {
             onSelect={handleSelectPhoto}
             onClear={handleClearPhoto}
           />
+          {preparing && (
+            <p className="mt-3 text-xs text-gray-500 text-center">
+              Preparing image…
+            </p>
+          )}
 
           {image && (
             <ColorTestPanel
@@ -260,7 +286,9 @@ export function Upload() {
                 disabled={!canSubmit || uploadMutation.isPending}
                 className="w-full bg-[#2D2520] hover:bg-[#2D2520]/90 text-white py-6 rounded-2xl text-base shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
               >
-                {!colorPassed ? (
+                {uploadMutation.isPending ? (
+                  <>Uploading…</>
+                ) : !colorPassed ? (
                   <>🔒 Test color to unlock upload</>
                 ) : (
                   <>
@@ -268,6 +296,11 @@ export function Upload() {
                   </>
                 )}
               </Button>
+              {uploadMutation.isPending && (
+                <p className="text-xs text-gray-500 text-center -mt-2">
+                  Sending your photo to the gallery — almost there.
+                </p>
+              )}
             </div>
           )}
 

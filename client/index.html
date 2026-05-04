@@ -3,9 +3,29 @@
   <html lang="en">
     <head>
       <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <!--
+        viewport-fit=cover lets the layout extend under iOS safe areas
+        (home indicator, dynamic island). Without it, the document is
+        letterboxed inside a smaller region and reads as "zoomed in".
+      -->
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+      />
+      <!-- iOS Safari standalone-mode hints; harmless in regular browsing. -->
+      <meta name="apple-mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      <meta name="theme-color" content="#F5F1ED" />
       <title>ChromaWalk</title>
-      <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
+      <style>
+        html, body { height: 100%; margin: 0; }
+        /*
+         * Prevent iOS Safari from inflating font-size on orientation change
+         * (the "Boost" behavior) — keeps the layout sized to the design.
+         */
+        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        #root { height: 100%; }
+      </style>
     </head>
 
     <body>

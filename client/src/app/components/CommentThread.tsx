@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { type Comment, useAddCommentMutation } from '../queries';
 import { useAppStore } from '../store';
+import { UserAvatar } from './UserAvatar';
 
 interface Props {
   photoId: string;
@@ -92,18 +93,12 @@ export function CommentThread({ photoId, comments, isLoading }: Props) {
           return (
             <div key={comment.id} className="animate-fade-in">
               <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#4DB6AC] to-[#8BA888] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                  {comment.avatarUrl ? (
-                    <img
-                      src={comment.avatarUrl}
-                      alt={comment.username}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    comment.username.charAt(0).toUpperCase()
-                  )}
-                </div>
+                <UserAvatar
+                  url={comment.avatarUrl}
+                  name={comment.username}
+                  size={32}
+                  gradientClass="from-[#4DB6AC] to-[#8BA888]"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm text-[#2D2520]">
                     {comment.username}

@@ -158,7 +158,7 @@ export function MissionPickerDialog({ pendingType, onSelect, onClose }: Props) {
                           className="w-2.5 h-2.5 rounded-full"
                           style={{
                             background: isRainbow
-                              ? 'linear-gradient(135deg, #B86060, #C08762, #7E9683, #5F7B96)'
+                              ? 'linear-gradient(135deg, #FF9BA0, #E18430, #7C9C7A, #6E8FAA)'
                               : (missionColor?.morandi ?? '#9E9E9E'),
                           }}
                           aria-hidden

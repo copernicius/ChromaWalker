@@ -20,6 +20,7 @@ import {
   Header,
   MissionCard,
   ShakeToJoinDialog,
+  UserAvatar,
 } from '../components';
 import {
   Button,
@@ -752,7 +753,7 @@ function TeamDetailDialog({
                   key={m.userId}
                   className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2"
                 >
-                  <MemberAvatar url={m.avatarUrl} name={m.username} size={32} />
+                  <UserAvatar url={m.avatarUrl} name={m.username} size={32} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-[#2D2520] truncate">
                       {m.username}
@@ -794,41 +795,6 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="bg-gray-50 rounded-xl p-2.5">
       <p className="text-xs text-gray-500">{label}</p>
       <p className="text-sm font-semibold text-[#2D2520]">{value}</p>
-    </div>
-  );
-}
-
-// Resilient avatar: empty url or load failure both fall back to the
-// gradient-tile + first-letter monogram used elsewhere (PhotoCard etc).
-// `referrerPolicy="no-referrer"` lets Google avatars load — they reject
-// requests carrying a Referer header from a different origin.
-function MemberAvatar({
-  url,
-  name,
-  size,
-}: {
-  url?: string;
-  name: string;
-  size: number;
-}) {
-  const [errored, setErrored] = useState(false);
-  const showImg = !!url && !errored;
-  return (
-    <div
-      className="rounded-full overflow-hidden bg-gradient-to-br from-[#FF8A65] to-[#9575CD] flex items-center justify-center text-white text-xs font-bold shrink-0"
-      style={{ width: size, height: size }}
-    >
-      {showImg ? (
-        <img
-          src={url}
-          alt={name}
-          referrerPolicy="no-referrer"
-          onError={() => setErrored(true)}
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        (name.charAt(0) || '?').toUpperCase()
-      )}
     </div>
   );
 }
@@ -931,7 +897,7 @@ function MessageBoard({
               className="flex items-start gap-2 bg-gray-50 rounded-xl px-3 py-2"
             >
               <div className="mt-0.5">
-                <MemberAvatar url={m.avatarUrl} name={m.username} size={28} />
+                <UserAvatar url={m.avatarUrl} name={m.username} size={28} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2">
@@ -975,6 +941,9 @@ function CreateTeamDialog({ open, onOpenChange }: CreateDialogProps) {
   const [target, setTarget] = useState<number | null>(null);
   const [reward, setReward] = useState<number | null>(null);
   const [maxSize, setMaxSize] = useState<number | null>(null);
+  // Validation only reveals once the user has clicked Create — avoids
+  // splashing the form red the moment the dialog opens.
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const create = useCreateTeamMissionMutation();
 
   // Pin defaults once the server's allowed values arrive — avoids hard-coding
@@ -985,6 +954,12 @@ function CreateTeamDialog({ open, onOpenChange }: CreateDialogProps) {
     if (maxSize === null && maxSizeOptions.length > 0) setMaxSize(maxSizeOptions[0]);
   }, [target, reward, maxSize, targetOptions, rewardOptions, maxSizeOptions]);
 
+  // Reset error state on every dialog re-open so a previous failed attempt
+  // doesn't leave the form red.
+  useEffect(() => {
+    if (open) setSubmitAttempted(false);
+  }, [open]);
+
   const reset = () => {
     setTitle('');
     setDescription('');
@@ -992,26 +967,32 @@ function CreateTeamDialog({ open, onOpenChange }: CreateDialogProps) {
     setTarget(targetOptions[0] ?? null);
     setReward(rewardOptions[0] ?? null);
     setMaxSize(maxSizeOptions[0] ?? null);
+    setSubmitAttempted(false);
   };
 
+  const titleInvalid = title.trim().length === 0;
+  const targetInvalid = target === null;
+  const rewardInvalid = reward === null;
+  const maxSizeInvalid = maxSize === null;
+  const showTitleError = submitAttempted && titleInvalid;
+  const showTargetError = submitAttempted && targetInvalid;
+  const showRewardError = submitAttempted && rewardInvalid;
+  const showMaxSizeError = submitAttempted && maxSizeInvalid;
+
   const handleSubmit = () => {
-    const trimmed = title.trim();
-    if (trimmed.length === 0) {
-      toast.error('Title is required');
-      return;
-    }
-    if (target === null || reward === null || maxSize === null) {
-      toast.error('Pick photo count, reward, and team size');
+    setSubmitAttempted(true);
+    if (titleInvalid || targetInvalid || rewardInvalid || maxSizeInvalid) {
+      toast.error('Please fill in the highlighted fields');
       return;
     }
     create.mutate(
       {
-        title: trimmed,
+        title: title.trim(),
         description: description.trim(),
         color,
-        target,
-        reward,
-        maxSize,
+        target: target as number,
+        reward: reward as number,
+        maxSize: maxSize as number,
       },
       {
         onSuccess: () => {
@@ -1023,13 +1004,6 @@ function CreateTeamDialog({ open, onOpenChange }: CreateDialogProps) {
       },
     );
   };
-
-  const canSubmit =
-    !create.isPending &&
-    title.trim().length > 0 &&
-    target !== null &&
-    reward !== null &&
-    maxSize !== null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1045,14 +1019,26 @@ function CreateTeamDialog({ open, onOpenChange }: CreateDialogProps) {
 
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label htmlFor="t-title">Title</Label>
+            <Label
+              htmlFor="t-title"
+              className={showTitleError ? 'text-red-600' : undefined}
+            >
+              Title <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="t-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Sunset Coral doors in the CBD"
               maxLength={100}
+              aria-invalid={showTitleError || undefined}
+              aria-describedby={showTitleError ? 't-title-err' : undefined}
             />
+            {showTitleError && (
+              <p id="t-title-err" className="text-xs text-red-600">
+                Please give your team mission a title.
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -1072,35 +1058,54 @@ function CreateTeamDialog({ open, onOpenChange }: CreateDialogProps) {
           </div>
 
           <div className="space-y-1.5">
-            <Label>Photos to collect</Label>
+            <Label className={showTargetError ? 'text-red-600' : undefined}>
+              Photos to collect <span className="text-red-500">*</span>
+            </Label>
             <SegmentedNumberPicker
               value={target}
               options={targetOptions}
               onChange={setTarget}
+              invalid={showTargetError}
             />
+            {showTargetError && (
+              <p className="text-xs text-red-600">Pick how many photos the team needs.</p>
+            )}
           </div>
 
           <div className="space-y-1.5">
-            <Label>Total reward (split equally)</Label>
+            <Label className={showRewardError ? 'text-red-600' : undefined}>
+              Total reward (split equally) <span className="text-red-500">*</span>
+            </Label>
             <SegmentedNumberPicker
               value={reward}
               options={rewardOptions}
               onChange={setReward}
               suffix=" pts"
+              invalid={showRewardError}
             />
+            {showRewardError && (
+              <p className="text-xs text-red-600">Pick a reward to split among members.</p>
+            )}
           </div>
 
           <div className="space-y-1.5">
-            <Label>Max team size</Label>
+            <Label className={showMaxSizeError ? 'text-red-600' : undefined}>
+              Max team size <span className="text-red-500">*</span>
+            </Label>
             <SegmentedNumberPicker
               value={maxSize}
               options={maxSizeOptions}
               onChange={setMaxSize}
+              invalid={showMaxSizeError}
             />
-            {maxSize !== null && (
-              <p className="text-xs text-gray-500">
-                Auto-starts once {startThreshold(maxSize)} of {maxSize} members have joined.
-              </p>
+            {showMaxSizeError ? (
+              <p className="text-xs text-red-600">Pick the maximum team size.</p>
+            ) : (
+              maxSize !== null && (
+                <p className="text-xs text-gray-500">
+                  Auto-starts once {startThreshold(maxSize)} of {maxSize} members have joined.
+                </p>
+              )
             )}
           </div>
         </div>
@@ -1116,7 +1121,7 @@ function CreateTeamDialog({ open, onOpenChange }: CreateDialogProps) {
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!canSubmit}
+            disabled={create.isPending}
             className="flex-1 bg-[#2D2520] hover:bg-[#3D3530] text-white"
           >
             {create.isPending ? 'Creating…' : 'Create'}
@@ -1180,11 +1185,15 @@ function SegmentedNumberPicker({
   options,
   onChange,
   suffix = '',
+  invalid = false,
 }: {
   value: number | null;
   options: number[];
   onChange: (n: number) => void;
   suffix?: string;
+  /** Highlights every unselected option in red — used by the create-team
+      form to show that nothing has been picked yet. */
+  invalid?: boolean;
 }) {
   if (options.length === 0) {
     return <p className="text-sm text-gray-400">Loading options…</p>;
@@ -1193,6 +1202,9 @@ function SegmentedNumberPicker({
     <div className="flex gap-2">
       {options.map((n) => {
         const active = n === value;
+        const inactiveBorder = invalid
+          ? 'border-red-300 hover:border-red-400'
+          : 'border-gray-200 hover:border-gray-400';
         return (
           <button
             key={n}
@@ -1202,7 +1214,7 @@ function SegmentedNumberPicker({
             className={`flex-1 h-9 rounded-md text-sm border transition ${
               active
                 ? 'bg-[#2D2520] text-white border-[#2D2520]'
-                : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
+                : `bg-white text-gray-700 ${inactiveBorder}`
             }`}
           >
             {n}

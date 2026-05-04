@@ -8,5 +8,7 @@ export { MissionCard } from './MissionCard';
 export { CardStack } from './CardStack';
 export { LocationPicker } from './LocationPicker';
 export { ErrorBoundary } from './ErrorBoundary';
+export { PhotoImage } from './PhotoImage';
 export { ShakeToJoinDialog } from './ShakeToJoinDialog';
+export { UserAvatar } from './UserAvatar';
 export { WaterfallGrid } from './WaterfallGrid';

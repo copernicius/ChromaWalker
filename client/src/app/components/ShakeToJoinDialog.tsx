@@ -10,7 +10,7 @@ import {
 import { useJoinRandomTeamMissionMutation } from '../queries';
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Progress } from './ui';
 
-const SHAKE_DURATION_MS = 3000;
+const SHAKE_DURATION_MS = 1000;
 // Heuristic: if we never see a devicemotion event within this window after
 // "granted", assume the device has no accelerometer (desktop browser) and
 // surface the simulate fallback so the feature is still testable.

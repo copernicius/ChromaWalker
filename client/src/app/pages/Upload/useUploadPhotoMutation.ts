@@ -4,7 +4,10 @@ import { apiCall } from '../../lib';
 import type { TaskType } from './domain';
 
 interface UploadInput {
-  image: string; // data URL from PhotoCapture
+  // Data URL holding an already-compressed JPEG. Compression happens once
+  // upstream in Upload/index.tsx handleSelectPhoto so the same bytes feed
+  // both /api/detect-color and /api/photos/upload.
+  image: string;
   color: string;
   taskType: TaskType;
   missionId: string | undefined;
@@ -17,8 +20,7 @@ interface UploadInput {
 
 async function dataUrlToFile(dataUrl: string): Promise<File> {
   const blob = await fetch(dataUrl).then((r) => r.blob());
-  const ext = (blob.type.split('/')[1] ?? 'jpg').split(';')[0];
-  return new File([blob], `photo.${ext}`, { type: blob.type || 'image/jpeg' });
+  return new File([blob], 'photo.jpg', { type: 'image/jpeg' });
 }
 
 export function useUploadPhotoMutation() {
