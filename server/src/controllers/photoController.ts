@@ -157,12 +157,11 @@ export async function uploadPhoto(req: Request, res: Response): Promise<void> {
 			}
 		}
 
-		// multer-s3 attaches `key` to req.file. We construct the browser-facing
-		// URL from R2_PUBLIC_URL — multer-s3's `location` field points at the
-		// management endpoint (private), not the R2.dev / custom domain URL
-		// that the browser actually needs.
-		const fileWithKey = req.file as Express.Multer.File & { key?: string };
-		const objectKey = fileWithKey.key;
+		// multer-s3 sets `key`; multer.diskStorage sets `filename`. Read
+		// either so we work in both R2 and local-storage modes (see
+		// lib/storage.ts). r2PublicUrl picks the right URL shape per mode.
+		const f = req.file as Express.Multer.File & { key?: string };
+		const objectKey = f.key ?? f.filename;
 		if (!objectKey) {
 			fail(res, ErrCode.INVALID_PARAM, "Upload did not return a storage key");
 			return;

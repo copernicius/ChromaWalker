@@ -149,16 +149,19 @@ bucket → Settings → Public access). Paste that URL into `R2_PUBLIC_URL`.
 | `JWT_SECRET` | ✓ | Any random string ≥ 32 chars; `openssl rand -hex 32` |
 | `GOOGLE_CLIENT_ID` | ✓ | OAuth 2.0 client id (must match the client's `VITE_GOOGLE_CLIENT_ID`) |
 | `GOOGLE_VISION_KEY` | ✓ | API key for the color-detection endpoint |
-| `R2_ACCESS_KEY_ID` | ✓ | Cloudflare R2 token id |
-| `R2_SECRET_ACCESS_KEY` | ✓ | Cloudflare R2 token secret |
-| `R2_ENDPOINT` | ✓ | `https://<account-id>.r2.cloudflarestorage.com` |
-| `R2_BUCKET` | ✓ | Bucket name |
-| `R2_PUBLIC_URL` | ✓ | `https://pub-<hash>.r2.dev` (or your custom domain) |
+| `R2_ACCESS_KEY_ID` | prod | Cloudflare R2 token id |
+| `R2_SECRET_ACCESS_KEY` | prod | Cloudflare R2 token secret |
+| `R2_ENDPOINT` | prod | `https://<account-id>.r2.cloudflarestorage.com` |
+| `R2_BUCKET` | prod | Bucket name |
+| `R2_PUBLIC_URL` | prod | `https://pub-<hash>.r2.dev` (or your custom domain) |
 | `CLIENT_ORIGIN` | prod | Comma-separated CORS allowlist. Supports `*.example.com` for preview deploys. Unset = allow any origin (dev only) |
 
-`lib/storage.ts` calls `requireEnv(...)` for every R2 var and **throws at
-boot** if any are missing. That keeps misconfigured production deploys
-from accepting writes that would silently 404 later.
+**R2 is optional.** `lib/storage.ts` checks all five `R2_*` vars at
+boot. If any are missing, the server falls back to local-disk storage
+under `<server>/tmp` (served via `app.use('/tmp', static)`) — same flow
+the app shipped with originally. Useful for development to avoid
+spending R2 quota. The boot log line tells you which mode is active:
+`[storage] mode=R2 …` or `[storage] mode=local …`.
 
 ## Running locally
 

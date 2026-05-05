@@ -55,21 +55,21 @@ export default defineConfig({
     //   3. cd ROOT_PATH/client && mkcert localhost
     // The *.pem files are gitignored. Without them, dev runs over HTTP.
     https: httpsConfig,
-    proxy: {
-      "/api": {
-        // Inside docker-compose, `server` resolves to the server container.
-        // When running the client on the host, change this to http://localhost:3000.
-        // target: "http://server:3000",
-        target: "http://localhost:3000",
-        changeOrigin: true,
-      },
-      // Socket.IO endpoint — needs ws:true so the protocol upgrade goes
-      // through. Long-poll fallback works without it but is much slower.
-      "/socket.io": {
-        target: "http://localhost:3000",
-        changeOrigin: true,
-        ws: true,
-      },
-    },
+    // Proxy target switches by run mode:
+    //   • Host (`pnpm dev` directly) → http://localhost:3000
+    //   • Docker (`make up`) → http://server:3000 (compose service name)
+    // The docker-compose client service sets PROXY_TARGET so this
+    // resolves correctly without manual edits to vite.config.ts.
+    proxy: (() => {
+      const apiTarget = process.env.PROXY_TARGET ?? "http://localhost:3000";
+      return {
+        "/api": { target: apiTarget, changeOrigin: true },
+        "/socket.io": { target: apiTarget, changeOrigin: true, ws: true },
+        // Local-storage mode (no R2 vars): the server serves uploaded
+        // images at /tmp/<filename> via express.static. Idle when R2 is
+        // configured — image URLs point at R2_PUBLIC_URL instead.
+        "/tmp": { target: apiTarget, changeOrigin: true },
+      };
+    })(),
   },
 });

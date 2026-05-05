@@ -120,16 +120,19 @@ export async function updateMe(req: Request, res: Response): Promise<void> {
 		}
 
 		if (req.file) {
-			// Best-effort cleanup of the previous avatar in R2. r2DeleteObject
-			// is a no-op for external URLs (Google CDN, pre-migration paths).
+			// Best-effort cleanup of the previous avatar — r2DeleteObject
+			// dispatches by URL shape (R2 / local /tmp / external CDN).
 			if (user.avatarUrl) void r2DeleteObject(user.avatarUrl);
 
-			const fileWithKey = req.file as Express.Multer.File & { key?: string };
-			if (!fileWithKey.key) {
+			// multer-s3 sets `key`; multer.diskStorage sets `filename`. See
+			// lib/storage.ts for the two-mode behavior.
+			const f = req.file as Express.Multer.File & { key?: string };
+			const objectKey = f.key ?? f.filename;
+			if (!objectKey) {
 				fail(res, ErrCode.INVALID_PARAM, "Upload did not return a storage key");
 				return;
 			}
-			user.avatarUrl = r2PublicUrl(fileWithKey.key);
+			user.avatarUrl = r2PublicUrl(objectKey);
 			changed = true;
 		}
 

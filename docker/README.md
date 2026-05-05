@@ -6,6 +6,34 @@ deploys do **not** use these files (server runs on Fly.io, client on
 Cloudflare Pages); see the top-level [`README.md`](../README.md) for
 that path.
 
+## TL;DR
+
+```bash
+# 1. Start Docker Desktop, then:
+cp ../server/.env.example ../server/.env       # fill in MONGO_URI=mongodb://mongodb:27017/chromawalk
+                                               # GOOGLE_CLIENT_ID, GOOGLE_VISION_KEY, JWT_SECRET
+                                               # R2_* are optional — leave blank to use local file storage
+cp ../client/.env.example ../client/.env       # fill in VITE_GOOGLE_CLIENT_ID, VITE_GOOGLE_MAPS_API_KEY
+
+cd docker
+make up                                        # builds + starts mongodb, server, client (~2–5 min first time)
+
+# 2. Open https://localhost:5173
+```
+
+Daily loop:
+```bash
+make logs           # tail server + client + mongo
+make restart        # bounce everything
+make down           # stop
+make shell-db       # mongosh (use chromawalk; db.dropDatabase() to wipe)
+```
+
+If `https://localhost:5173` shows a cert warning, run the
+[mkcert setup](#3-recommended-set-up-https-for-the-dev-server-with-mkcert).
+If `/api/...` requests fail with proxy errors, the client probably
+booted before the server — `make restart` and they'll reconnect.
+
 ## What you get
 
 `docker-compose.yml` defines three services on a shared bridge network:
@@ -66,19 +94,104 @@ VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 # Leave VITE_API_BASE_URL unset so Vite proxies /api → the local server.
 ```
 
-### 3. *(Optional)* Generate HTTPS certificates for the dev server
+### 3. *(Recommended)* Set up HTTPS for the dev server with mkcert
 
-Without this Vite serves over plain HTTP, which is fine for most work
-but breaks Google Sign-In's same-origin checks.
+Vite runs over HTTPS in development whenever it finds two PEM files at
+`client/localhost-key.pem` and `client/localhost.pem` (see the
+auto-detect block in `vite.config.ts`). Without them it falls back to
+HTTP — workable for most pages, but two things break:
+
+- **Google Sign-In** requires HTTPS or `http://localhost` (which our
+  setup *is*, but the Google library is fussy about how the page is
+  loaded; HTTPS is the reliable path).
+- **`navigator.geolocation`** and **`devicemotion`** are gated by
+  Chrome / Safari to "secure contexts" only — Map Explore and the
+  shake-to-join feature won't get coordinates / motion events on HTTP.
+
+[mkcert](https://github.com/FiloSottile/mkcert) generates locally-trusted
+certs without the browser-warning dance.
+
+#### macOS
 
 ```bash
 brew install mkcert nss
-mkcert -install                 # one-time, installs the root CA
-cd ../client && mkcert localhost
+mkcert -install                       # one-time: installs the local root CA
+cd ../client                          # cert files must live next to vite.config.ts
+mkcert localhost
 ```
 
-Creates `localhost-key.pem` and `localhost.pem` in `client/`. Both are
-gitignored. `vite.config.ts` auto-detects them at boot.
+`nss` is needed only if you use Firefox; on Safari/Chrome it's optional
+but harmless to install.
+
+#### Linux
+
+```bash
+sudo apt install libnss3-tools        # Debian/Ubuntu — for Firefox trust
+# Then download the latest mkcert release from
+# https://github.com/FiloSottile/mkcert/releases and put it on PATH.
+mkcert -install
+cd ../client
+mkcert localhost
+```
+
+#### Windows (PowerShell)
+
+```powershell
+choco install mkcert                  # via Chocolatey
+mkcert -install
+cd ..\client
+mkcert localhost
+```
+
+#### What you should see
+
+```
+Created a new certificate valid for the following names 📜
+ - "localhost"
+
+The certificate is at "./localhost.pem" and the key at "./localhost-key.pem" ✅
+```
+
+Two new files in `client/`:
+
+```
+client/
+├── localhost-key.pem      ← gitignored (private key)
+└── localhost.pem          ← gitignored (cert)
+```
+
+#### Verify it works
+
+```bash
+cd docker && make restart            # picks up the new files
+```
+
+Open <https://localhost:5173> — the lock icon should be solid (no
+"Not secure" warning, no certificate prompts). If the browser warns,
+the root CA wasn't installed for that browser; re-run
+`mkcert -install` and restart the browser.
+
+#### Regenerating / cleaning up
+
+mkcert certs expire (default ~2 years). To regenerate:
+
+```bash
+cd ../client
+rm localhost-key.pem localhost.pem
+mkcert localhost
+```
+
+To remove the root CA from your system entirely (clean uninstall):
+
+```bash
+mkcert -uninstall
+```
+
+#### Skip mkcert?
+
+Fine — Vite will serve over `http://localhost:5173`. Just be aware that
+Google Sign-In, geolocation, and motion sensors may misbehave. The rest
+of the app works the same.
 
 ### 4. Start the stack
 

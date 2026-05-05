@@ -13,6 +13,7 @@ import missionsRoutes from './routes/missions';
 import paletteRoutes from './routes/palette';
 import teamMissionsRoutes from './routes/teamMissions';
 import { initRealtime } from './lib/realtime';
+import { localStorageDir, usingR2 } from './lib/storage';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -66,8 +67,12 @@ app.use(
 );
 app.use(express.json({ limit: '10mb' }));
 
-// Uploaded images live in Cloudflare R2 — see lib/storage.ts. Browsers
-// fetch them directly from R2_PUBLIC_URL, no proxy needed.
+// In R2 mode, browsers fetch images directly from R2_PUBLIC_URL — no
+// server-side static handler needed. In local mode, serve them from
+// <server>/tmp at /tmp/<filename>.
+if (!usingR2()) {
+  app.use('/tmp', express.static(localStorageDir()));
+}
 
 app.use('/api/auth', authRoutes);
 app.use('/api/photos', photoRoutes);
