@@ -1,0 +1,109 @@
+# CODEOWNERS — mirrors task.md.
+#
+# Replace the @A–@F placeholders with real GitHub handles before merging.
+# The last matching pattern wins, so this file walks from the broadest
+# default (everything → A) down to narrowest module-specific overrides.
+#
+# For this to actually gate merges, enable on GitHub:
+#   Settings → Branches → Branch protection rule on `main`:
+#     ☑ Require a pull request before merging
+#     ☑ Require review from Code Owners
+#     ☑ Require status checks to pass (typecheck + lint)
+
+# ─── Default: every untouched path falls to A ───────────────────────────
+*                                                            @A
+
+# ─── B — Auth & user profile ────────────────────────────────────────────
+/server/src/controllers/authController.ts                    @B
+/server/src/routes/auth.ts                                   @B
+/server/src/models/User.ts                                   @B
+/client/src/app/pages/Welcome.tsx                            @B
+/client/src/app/pages/Profile.tsx                            @B
+/client/src/app/queries/auth.ts                              @B
+/client/src/app/components/UserAvatar.tsx                    @B
+
+# ─── C — Photo upload + color detection ─────────────────────────────────
+/server/src/controllers/photoController.ts                   @C
+/server/src/controllers/colorController.ts                   @C
+/server/src/routes/photos.ts                                 @C
+/server/src/routes/detectColor.ts                            @C
+/server/src/models/Photo.ts                                  @C
+/client/src/app/pages/Upload/                                @C
+/client/src/app/lib/imageCompress.ts                         @C
+/client/src/app/queries/photos.ts                            @C
+/client/src/app/components/PhotoCard.tsx                     @C
+/client/src/app/components/PhotoDetail.tsx                   @C
+/client/src/app/components/PhotoImage.tsx                    @C
+/client/src/app/components/PhotoShareDialog.tsx              @C
+
+# ─── D — Missions, leveling, achievements, palette ──────────────────────
+/server/src/controllers/missionsController.ts                @D
+/server/src/controllers/levelsController.ts                  @D
+/server/src/controllers/paletteController.ts                 @D
+/server/src/controllers/achievementsController.ts            @D
+/server/src/routes/missions.ts                               @D
+/server/src/routes/levels.ts                                 @D
+/server/src/routes/palette.ts                                @D
+/server/src/routes/achievements.ts                           @D
+/server/src/lib/missions.ts                                  @D
+/server/src/lib/levels.ts                                    @D
+/server/src/lib/missionProgress.ts                           @D
+/server/src/lib/palette.ts                                   @D
+/server/src/lib/achievements.ts                              @D
+/server/src/lib/taskValidation.ts                            @D
+/client/src/app/pages/Missions.tsx                           @D
+/client/src/app/components/MissionCard.tsx                   @D
+/client/src/app/components/DailyMissionCard.tsx              @D
+/client/src/app/queries/missions.ts                          @D
+/client/src/app/queries/levels.ts                            @D
+/client/src/app/queries/palette.ts                           @D
+/client/src/app/queries/achievements.ts                      @D
+/client/src/app/data/colors.ts                               @D
+
+# ─── E — Team missions & realtime ───────────────────────────────────────
+/server/src/controllers/teamMissionsController.ts            @E
+/server/src/routes/teamMissions.ts                           @E
+/server/src/models/TeamMission.ts                            @E
+/server/src/models/TeamMessage.ts                            @E
+/server/src/lib/realtime.ts                                  @E
+/server/src/lib/teamMissionOptions.ts                        @E
+/client/src/app/lib/socket.ts                                @E
+/client/src/app/lib/shake.ts                                 @E
+/client/src/app/components/ShakeToJoinDialog.tsx             @E
+
+# ─── F — Social engagement & discovery ──────────────────────────────────
+/server/src/controllers/likeController.ts                    @F
+/server/src/controllers/commentController.ts                 @F
+/server/src/controllers/bookmarkController.ts                @F
+/server/src/models/Like.ts                                   @F
+/server/src/models/Comment.ts                                @F
+/server/src/models/Bookmark.ts                               @F
+/client/src/app/pages/Home.tsx                               @F
+/client/src/app/pages/Galleries.tsx                          @F
+/client/src/app/pages/ColorGallery.tsx                       @F
+/client/src/app/pages/MapExplore.tsx                         @F
+/client/src/app/components/CommentThread.tsx                 @F
+/client/src/app/components/PhotoMap.tsx                      @F
+/client/src/app/components/LocationPicker.tsx                @F
+/client/src/app/components/WaterfallGrid.tsx                 @F
+/client/src/app/components/CardStack.tsx                     @F
+/client/src/app/queries/likes.ts                             @F
+/client/src/app/queries/comments.ts                          @F
+/client/src/app/queries/bookmarks.ts                         @F
+
+# ─── A — Shared contracts (explicit override) ───────────────────────────
+# These default to A via the catch-all already, but listing explicitly
+# protects them from being accidentally re-assigned by a broader pattern
+# someone might add later.
+/server/src/index.ts                                         @A
+/server/src/middleware/auth.ts                               @A
+/server/src/lib/response.ts                                  @A
+/server/src/lib/storage.ts                                   @A
+/client/src/app/lib/api.ts                                   @A
+/client/src/app/lib/queryClient.ts                           @A
+/client/src/app/Root.tsx                                     @A
+/client/src/app/App.tsx                                      @A
+/client/src/app/routes.ts                                    @A
+/client/src/app/store/                                       @A
+/.github/                                                    @A
+/task.md                                                     @A

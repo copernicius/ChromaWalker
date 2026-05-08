@@ -192,7 +192,7 @@ Without the PEMs, Vite falls back to HTTP.
 ### Against the deployed backend (UI iteration)
 
 ```bash
-echo 'VITE_API_BASE_URL=https://chromawalk-server.fly.dev' > .env.local
+echo 'VITE_API_BASE_URL=https://chromawalk2.fly.dev' > .env.local
 pnpm install
 pnpm dev
 ```

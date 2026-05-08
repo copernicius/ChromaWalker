@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for chromawalk-server on 2026-05-04T11:29:12+12:00
+# fly.toml app configuration file generated for chromawalk2 on 2026-05-07T00:03:47+12:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'chromawalk-server'
+app = 'chromawalk2'
 primary_region = 'syd'
 
 [build]
@@ -13,10 +13,6 @@ primary_region = 'syd'
   NODE_ENV = 'production'
   PORT = '8080'
 
-# Uploads now go to Cloudflare R2 (see server/src/lib/storage.ts), so the
-# old persistent volume is no longer needed. After a successful deploy,
-# free the storage with: fly volumes destroy uploads
-
 [http_service]
   internal_port = 8080
   force_https = true
@@ -25,6 +21,6 @@ primary_region = 'syd'
   min_machines_running = 0
 
 [[vm]]
-  cpu_kind = 'shared'
+  memory = '256mb'
   cpus = 1
   memory_mb = 256

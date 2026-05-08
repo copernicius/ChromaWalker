@@ -46,10 +46,37 @@ export function Welcome() {
       {/* Animated coast scene as the entire background */}
       <WalkingCoastScene />
 
-      {/* Foreground content layered on top */}
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-between p-8 py-12">
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col items-center justify-center max-w-md w-full">
+      {/* Foreground content layered on top. Heavy bottom padding pulls
+          the centered stack above the rainbow sea band (drawn at 58% from
+          the top of the viewport in WalkingCoastScene). */}
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-8 pt-12 pb-[35vh]">
+        {/* Main Content — login first, then brand */}
+        <div className="flex flex-col items-center justify-center max-w-md w-full">
+          {/* Google Login */}
+          <div className="w-full flex flex-col items-center gap-4 mb-10">
+            <div
+              className={
+                loginMutation.isPending ? "pointer-events-none opacity-50" : ""
+              }
+              aria-busy={loginMutation.isPending}
+            >
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError("Login failed. Please try again.")}
+                size="large"
+                width="300"
+                text="continue_with"
+                shape="pill"
+              />
+            </div>
+            {loginMutation.isPending && (
+              <p className="text-[#2D2520]/70 text-sm">Signing in…</p>
+            )}
+            {error && !loginMutation.isPending && (
+              <p className="text-red-700 text-sm font-medium">{error}</p>
+            )}
+          </div>
+
           {/* Brand */}
           <h1 className="text-5xl mb-6 text-center text-[#2D2520] drop-shadow-sm">
             <span className="font-semibold">Chroma</span>
@@ -78,32 +105,6 @@ export function Welcome() {
             </p>
             <p className="text-2xl text-[#2D2520]">world in color</p>
           </div>
-
-        </div>
-
-        {/* Google Login */}
-        <div className="w-full max-w-md flex flex-col items-center gap-4">
-          <div
-            className={
-              loginMutation.isPending ? "pointer-events-none opacity-50" : ""
-            }
-            aria-busy={loginMutation.isPending}
-          >
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setError("Login failed. Please try again.")}
-              size="large"
-              width="300"
-              text="continue_with"
-              shape="pill"
-            />
-          </div>
-          {loginMutation.isPending && (
-            <p className="text-[#2D2520]/70 text-sm">Signing in…</p>
-          )}
-          {error && !loginMutation.isPending && (
-            <p className="text-red-700 text-sm font-medium">{error}</p>
-          )}
         </div>
       </div>
     </div>

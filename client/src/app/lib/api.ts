@@ -1,18 +1,21 @@
-import { useAppStore } from '../store';
-import { queryClient } from './queryClient';
+import { useAppStore } from "../store";
+import { queryClient } from "./queryClient";
 
 // Base URL of the backend. Empty string in dev (Vite proxies `/api/*` to
 // localhost:3000) or set via VITE_API_BASE_URL in production builds (e.g.
-// `https://chromawalk-server.fly.dev`). Trailing slash is stripped so we
+// `https://chromawalk2.fly.dev`). Trailing slash is stripped so we
 // always emit `${BASE}/api/...` cleanly.
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(
+  /\/$/,
+  "",
+);
 
 function resolveUrl(input: RequestInfo): RequestInfo {
-  if (typeof input !== 'string') return input;
+  if (typeof input !== "string") return input;
   if (!API_BASE_URL) return input;
   // Only prepend for relative paths — leave absolute URLs untouched so
   // callers can still hit third-party services if needed.
-  if (input.startsWith('/')) return `${API_BASE_URL}${input}`;
+  if (input.startsWith("/")) return `${API_BASE_URL}${input}`;
   return input;
 }
 
@@ -23,7 +26,7 @@ export class ApiError extends Error {
     public readonly errno?: number,
   ) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
   }
 }
 
@@ -31,11 +34,11 @@ export class ApiError extends Error {
 // non-zero errno from any endpoint produces something readable rather
 // than dumping a raw errmsg or 'Request failed'.
 const FRIENDLY_BY_ERRNO: Record<number, string> = {
-  1001: 'Some required information is missing.',
-  1002: 'That doesn\'t look right — please double-check and try again.',
+  1001: "Some required information is missing.",
+  1002: "That doesn't look right — please double-check and try again.",
   1003: "We couldn't find what you were looking for.",
-  1004: 'Please sign in to continue.',
-  1005: 'No results yet.',
+  1004: "Please sign in to continue.",
+  1005: "No results yet.",
 };
 
 /**
@@ -50,28 +53,33 @@ export function friendlyErrorMessage(err: unknown): string {
     // unless it's the placeholder we generate ourselves for HTTP failures.
     const serverMsg = err.message;
     const looksLikeServerMsg =
-      serverMsg && !serverMsg.startsWith('HTTP ') && serverMsg !== 'Request failed';
+      serverMsg &&
+      !serverMsg.startsWith("HTTP ") &&
+      serverMsg !== "Request failed";
     if (looksLikeServerMsg) return serverMsg;
     if (err.errno && FRIENDLY_BY_ERRNO[err.errno]) {
       return FRIENDLY_BY_ERRNO[err.errno];
     }
     if (err.status >= 500) {
-      return 'Something went wrong on our end. Please try again in a moment.';
+      return "Something went wrong on our end. Please try again in a moment.";
     }
-    return 'Something went wrong. Please try again.';
+    return "Something went wrong. Please try again.";
   }
   if (err instanceof Error) {
     // Fetch / network failures (offline, DNS, CORS) end up here.
-    return 'Network error — check your connection and try again.';
+    return "Network error — check your connection and try again.";
   }
-  return 'Unexpected error. Please try again.';
+  return "Unexpected error. Please try again.";
 }
 
-export async function apiFetch(input: RequestInfo, init: RequestInit = {}): Promise<Response> {
+export async function apiFetch(
+  input: RequestInfo,
+  init: RequestInit = {},
+): Promise<Response> {
   const token = useAppStore.getState().token;
   const headers = new Headers(init.headers);
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const res = await fetch(resolveUrl(input), { ...init, headers });
@@ -79,7 +87,7 @@ export async function apiFetch(input: RequestInfo, init: RequestInit = {}): Prom
   if (res.status === 401) {
     useAppStore.getState().logout();
     queryClient.clear();
-    throw new ApiError('Unauthorized', 401);
+    throw new ApiError("Unauthorized", 401);
   }
 
   return res;
@@ -96,7 +104,10 @@ interface Envelope<T> {
  * Throws ApiError on transport failures (401/404/5xx) or business errors
  * (errno !== 0). Returns `data` typed as T on success.
  */
-export async function apiCall<T>(input: RequestInfo, init: RequestInit = {}): Promise<T> {
+export async function apiCall<T>(
+  input: RequestInfo,
+  init: RequestInit = {},
+): Promise<T> {
   const res = await apiFetch(input, init);
 
   if (!res.ok) {
@@ -105,7 +116,7 @@ export async function apiCall<T>(input: RequestInfo, init: RequestInit = {}): Pr
 
   const body = (await res.json()) as Envelope<T>;
   if (body.errno !== 0) {
-    throw new ApiError(body.errmsg || 'Request failed', res.status, body.errno);
+    throw new ApiError(body.errmsg || "Request failed", res.status, body.errno);
   }
 
   return body.data as T;

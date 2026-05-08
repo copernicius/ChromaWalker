@@ -66,7 +66,7 @@ containers, then starts `tsx watch` (server) and `vite` (client).
 ```bash
 cd client
 pnpm install
-echo "VITE_API_BASE_URL=https://chromawalk-server.fly.dev" > .env.local
+echo "VITE_API_BASE_URL=https://chromawalk2.fly.dev" > .env.local
 pnpm dev
 ```
 
@@ -85,7 +85,7 @@ VITE_API_BASE_URL=
 
 ### `client/.env.production` (loaded by `vite build`)
 ```env
-VITE_API_BASE_URL=https://chromawalk-server.fly.dev
+VITE_API_BASE_URL=https://chromawalk2.fly.dev
 VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 ```
