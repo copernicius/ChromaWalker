@@ -8,6 +8,12 @@ that path.
 
 ## TL;DR
 
+> **Before you run anything, install the HTTPS dev certificate.** Google
+> Sign-In, geolocation (Map Explore), and motion sensors (shake-to-join)
+> all require a secure context — without the cert, those features
+> silently break. Full instructions in [§ 3 below](#3-install-https-certificates-required);
+> macOS quick path is in the snippet.
+
 ```bash
 # 1. Start Docker Desktop, then:
 cp ../server/.env.example ../server/.env       # fill in MONGO_URI=mongodb://mongodb:27017/chromawalk
@@ -15,10 +21,16 @@ cp ../server/.env.example ../server/.env       # fill in MONGO_URI=mongodb://mon
                                                # R2_* are optional — leave blank to use local file storage
 cp ../client/.env.example ../client/.env       # fill in VITE_GOOGLE_CLIENT_ID, VITE_GOOGLE_MAPS_API_KEY
 
+# 2. Install the HTTPS cert (required — see § 3 for Linux/Windows steps)
+brew install mkcert nss
+mkcert -install                                # one-time per machine
+(cd ../client && mkcert localhost)             # writes localhost.pem + localhost-key.pem
+
+# 3. Boot the stack
 cd docker
 make up                                        # builds + starts mongodb, server, client (~2–5 min first time)
 
-# 2. Open https://localhost:5173
+# 4. Open https://localhost:5173
 ```
 
 Daily loop:
@@ -29,8 +41,6 @@ make down           # stop
 make shell-db       # mongosh (use chromawalk; db.dropDatabase() to wipe)
 ```
 
-If `https://localhost:5173` shows a cert warning, run the
-[mkcert setup](#3-recommended-set-up-https-for-the-dev-server-with-mkcert).
 If `/api/...` requests fail with proxy errors, the client probably
 booted before the server — `make restart` and they'll reconnect.
 
@@ -53,7 +63,7 @@ manual rebuild.
 | Tool | Why |
 |---|---|
 | **Docker Desktop** ≥ 4.x | Runs the containers. <https://www.docker.com/products/docker-desktop/> |
-| **mkcert** *(optional)* | HTTPS for the dev server. Skip → Vite serves over HTTP. |
+| **mkcert** | **Required.** Generates the local HTTPS cert that Google Sign-In, geolocation, and motion sensors all depend on. See § 3. |
 | `make` | Convenience wrapper around `docker compose`. Pre-installed on macOS / most Linux. |
 
 ## First-time setup (clean clone)
@@ -94,19 +104,23 @@ VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 # Leave VITE_API_BASE_URL unset so Vite proxies /api → the local server.
 ```
 
-### 3. *(Recommended)* Set up HTTPS for the dev server with mkcert
+### 3. Install HTTPS certificates **(required)**
 
-Vite runs over HTTPS in development whenever it finds two PEM files at
-`client/localhost-key.pem` and `client/localhost.pem` (see the
-auto-detect block in `vite.config.ts`). Without them it falls back to
-HTTP — workable for most pages, but two things break:
+**Do this before `make up`** — without the certs, three core features
+silently misbehave:
 
-- **Google Sign-In** requires HTTPS or `http://localhost` (which our
-  setup *is*, but the Google library is fussy about how the page is
-  loaded; HTTPS is the reliable path).
-- **`navigator.geolocation`** and **`devicemotion`** are gated by
-  Chrome / Safari to "secure contexts" only — Map Explore and the
-  shake-to-join feature won't get coordinates / motion events on HTTP.
+- **Google Sign-In** is fussy about how the page is loaded; HTTPS is
+  the only reliable path. On plain HTTP you'll get cryptic auth errors
+  on the Welcome page.
+- **`navigator.geolocation`** (Map Explore) is gated by Chrome / Safari
+  to "secure contexts" only — no coordinates without HTTPS.
+- **`devicemotion`** (shake-to-join) is also secure-context-only on
+  mobile browsers — the dialog will never trigger.
+
+Vite auto-detects the cert: it runs over HTTPS as soon as it finds two
+PEM files at `client/localhost-key.pem` and `client/localhost.pem`
+(see the block in `vite.config.ts`). If you boot without them, Vite
+falls back to HTTP and the breakage above kicks in.
 
 [mkcert](https://github.com/FiloSottile/mkcert) generates locally-trusted
 certs without the browser-warning dance.
@@ -187,11 +201,12 @@ To remove the root CA from your system entirely (clean uninstall):
 mkcert -uninstall
 ```
 
-#### Skip mkcert?
+#### What if I skip this step?
 
-Fine — Vite will serve over `http://localhost:5173`. Just be aware that
-Google Sign-In, geolocation, and motion sensors may misbehave. The rest
-of the app works the same.
+Don't. Vite will fall back to `http://localhost:5173`, but Google
+Sign-In, geolocation, and motion sensors will all fail in ways that
+look like app bugs rather than cert issues. You'll spend longer
+debugging the symptoms than running `mkcert` would have taken.
 
 ### 4. Start the stack
 
