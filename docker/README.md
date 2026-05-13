@@ -20,6 +20,9 @@ cp ../server/.env.example ../server/.env       # fill in MONGO_URI=mongodb://mon
                                                # GOOGLE_CLIENT_ID, GOOGLE_VISION_KEY, JWT_SECRET
                                                # R2_* are optional — leave blank to use local file storage
 cp ../client/.env.example ../client/.env       # fill in VITE_GOOGLE_CLIENT_ID, VITE_GOOGLE_MAPS_API_KEY
+############################################################
+###### Get real keys from admin, please contact them. ######
+############################################################
 
 # 2. Install the HTTPS cert (required — see § 3 for Linux/Windows steps)
 brew install mkcert nss
